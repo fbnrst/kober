@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, shouldShowAndroidInstall, isAndroid, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, isTap, reuseRows, nextLinger, GRACE_MS, TICK_TTL, TICK_MAX } from '../public/flows.js';
+import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, shouldShowAndroidInstall, isAndroid, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, findNameMatch, isTap, reuseRows, nextLinger, GRACE_MS, TICK_TTL, TICK_MAX } from '../public/flows.js';
 import { createStore, localAdapter, userKey } from '../public/store.js';
 import { createSim, createClock } from '../public/sim.js';
 import { STRINGS } from '../public/i18n.js';
@@ -302,4 +302,25 @@ test('nextLinger: no linger for items checked at load, for unchecked or removed 
   assert.equal(l.size, 1);
   assert.equal(nextLinger(l, checked, { a: { id: 'a', checked: false } }, 6).size, 0); // undone
   assert.equal(nextLinger(l, checked, {}, 6).size, 0); // deleted
+});
+
+test('findNameMatch finds the oldest open item without a number that names the scanned product', () => {
+  const items = {
+    a: { id: 'a', title: 'Kurkuma', addedAt: 20 },
+    b: { id: 'b', title: 'Kurkuma', addedAt: 10 },
+    c: { id: 'c', title: 'Kurkuma', vgNum: 5, addedAt: 1 },
+    d: { id: 'd', title: 'Kurkuma', checked: true, addedAt: 2 },
+    e: { id: 'e', title: 'Kurkuma', ean: '4012345678901', addedAt: 3 },
+  };
+  assert.equal(findNameMatch(items, 'Bio Kurkuma gemahlen').id, 'b');
+  assert.equal(findNameMatch({ c: items.c, d: items.d, e: items.e }, 'Kurkuma'), null);
+});
+
+test('findNameMatch keeps different products apart and skips placeholders', () => {
+  assert.equal(findNameMatch({ a: { id: 'a', title: 'Apfel' } }, 'Apfelsaft'), null);
+  assert.equal(findNameMatch({ a: { id: 'a', title: 'Apfelsaft' } }, 'Apfel'), null);
+  assert.equal(findNameMatch({ a: { id: 'a', title: 'Kurkuma' } }, 'unbesetzt 1234'), null);
+  assert.equal(findNameMatch({ a: { id: 'a', title: 'unbesetzt 1234' } }, 'unbesetzt 1234'), null);
+  assert.equal(findNameMatch({}, 'Kurkuma'), null);
+  assert.equal(findNameMatch(null, ''), null);
 });

@@ -9,7 +9,7 @@ import { loadVg, similarNames } from './vg.js';
 import { toast, ask, asking, dismissKeyboard, loadScript, copyText } from './ui.js';
 import { createCamera, productName } from './scan.js';
 import { t, applyStatic } from './i18n.js';
-import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, isTap, reuseRows, nextLinger, GRACE_MS } from './flows.js';
+import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, findNameMatch, isTap, reuseRows, nextLinger, GRACE_MS } from './flows.js';
 import { planMove, planDrop, sortOpen } from './order.js';
 import { ORDER, OTHER, aisleOf, groupByAisle, sanitizeOverrides, withChoice, guessAisle } from './aisles.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
@@ -850,6 +850,21 @@ async function scanForRow(c, p, target) {
   } else { toast(t('scanUnknown')); return; }
   buzz();
 }
+// A scan whose number or barcode is on no item yet: ask whether an open item that was typed as a plain name ("Kurkuma") is the same
+// product. Yes: it gets the number and goes into the basket. Returns the toast info, null (no match, "Add new item" or closed
+// dialog: the caller adds a new item as before) or false (the scanner was closed meanwhile: do nothing).
+async function offerNameMatch(title, { vgNum = null, ean = null } = {}) {
+  if (Object.values(state.items).some(i => (vgNum && i.vgNum === vgNum) || (ean && i.ean === ean))) return null;
+  const m = findNameMatch(state.items, title);
+  if (!m) return null;
+  const session = scanSession;
+  const yes = await ask(t('confirmNameMatch', { listed: m.title }), { yes: t('askCheckOff'), no: t('askAddNew') });
+  if (session !== scanSession) return false;
+  if (!yes || !state.items[m.id] || state.items[m.id].checked || readOnly()) return null;
+  if (vgNum) bg.setNum(code, m.id, myKey(), vgNum, true, { title });
+  else bg.setEan(code, m.id, myKey(), ean, true);
+  return { title: m.title, already: false };
+}
 // A scanned or typed code (the camera, the manual field, a tapped suggestion)
 async function handleCode(raw) {
   const join = $('#scanner').classList.contains('join');
@@ -871,7 +886,10 @@ async function handleCode(raw) {
     if (c.kind === 'unknown') { scanMsg(t('scanUnknown'), true); return; }
     if (p && p.placeholder && !(await numberFits(p, c.n, null))) { closeScanner(); return; } // unused number, declined
     let r;
-    if (p) r = addToBasket(p.title, { vgNum: p.vgNum }); // the labelled product (or the item with its number) goes into the basket
+    if (p) { // the labelled product (or the item with its number) goes into the basket, or checks off a same-named item
+      if (!p.placeholder) { r = await offerNameMatch(p.title, { vgNum: p.vgNum }); if (r === false) return; }
+      if (!r) r = addToBasket(p.title, { vgNum: p.vgNum });
+    }
     else if (c.kind === 'vg') { // a VG number the database does not know, or the VG data has not loaded yet: a placeholder name
       r = addToBasket(t('vgPlaceholderTitle', { n: c.n }), { vgNum: c.n });
       if (r && !r.already) { toast(t(vg ? 'vgNotInDb' : 'vgSaved', { n: c.n })); r = null; }
@@ -884,7 +902,8 @@ async function handleCode(raw) {
         if (session !== scanSession) return; // the scanner was closed while waiting: nothing is added
         const same = name && items.find(i => i.title.toLowerCase() === name.toLowerCase());
         if (same) { if (!same.checked) bg.check(code, same.id, myKey(), true); r = { title: same.title, already: !!same.checked }; }
-        else title = name || t('itemFallback', { ean: c.ean });
+        else if (name && (r = await offerNameMatch(name, { ean: c.ean })) === false) return;
+        if (!r && !same) title = name || t('itemFallback', { ean: c.ean });
       }
       if (!r) r = addToBasket(title, { ean: c.ean });
     }
