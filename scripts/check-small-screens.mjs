@@ -224,6 +224,14 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
   await page.click('#toast .toastAct'); await page.waitForTimeout(300);
   if ((await openRows()) !== 1) violations.push(`[${tag}] scan-strike: Undo did not bring the listed item back`);
   if (await page.isVisible('#scanner')) violations.push(`[${tag}] scan-strike: the scanner stayed open`);
+  // the other answer: "Vollkornbrot" is on the list without a number, the demo product 7100 has the same name; Keep leaves it open
+  await page.click('#scanBtn'); await page.waitForTimeout(300);
+  await page.fill('#eanIn', '7100'); await page.press('#eanIn', 'Enter');
+  await page.waitForSelector('#askDlg:not(.hide)'); await page.click('#askNo'); await page.waitForTimeout(300);
+  const breadOpen = () => page.locator('#items .item:not(.done)', { hasText: 'Vollkornbrot' }).count();
+  if ((await breadOpen()) !== 1) violations.push(`[${tag}] scan-keep: "Keep" did not leave the listed item open`);
+  if (!(await page.locator('#items .item.done, #doneItems .item', { hasText: 'Vollkornbrot' }).count())) violations.push(`[${tag}] scan-keep: the scanned product is not in the basket`);
+  if (await page.isVisible('#scanner')) violations.push(`[${tag}] scan-keep: the scanner stayed open`);
   // share: the dialog of the local list, then name and emoji, then the QR code
   await page.click('#shareBtn'); await page.waitForTimeout(100); await check('share-dialog-local');
   await page.click('#shareStart');
