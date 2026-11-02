@@ -4,7 +4,7 @@
 //   npm run docs:screenshots          # writes public/docs/img/<lang>-<scene>.jpg
 //   npm run docs:screenshots -- /tmp/out   # another output folder
 //
-// The README picture `readme-phones-2.png` comes from the same run: the English list and ranking screens side by side in rounded phone frames like the ones
+// The README picture `readme-phones-3.png` comes from the same run: the English list and ranking screens side by side in rounded phone frames like the ones
 // on the help page (transparent corners, so it also works on GitHub's dark theme).
 //
 // Needs Google Chrome (or set CHROME_PATH, or run `npx playwright install chromium`).
@@ -38,10 +38,13 @@ async function scenes(browser, base, lang) {
     await page.waitForTimeout(300);
   };
   const shot = async name => {
+    await settled();
     await page.waitForTimeout(250);
     await page.screenshot({ path: path.join(OUT, `${lang}-${name}.jpg`), type: 'jpeg', quality: 80 });
     console.log(`  ${lang}-${name}.jpg`);
   };
+  // a just checked item lingers in the open list for a few seconds before it moves into the basket: wait until it has moved
+  const settled = () => page.waitForFunction(() => !document.querySelector('#items .item.done'), null, { timeout: 8000 });
   const add = async v => { await page.fill('#addIn', v); await page.press('#addIn', 'Enter'); await page.waitForTimeout(80); };
   const row = (sel, text) => page.locator(`${sel} .item`).filter({ hasText: text }).first();
   const tab = t => page.click(`.tabs [data-t=${t}]`);
@@ -70,7 +73,7 @@ async function scenes(browser, base, lang) {
   await shot('checkout');
   // 5) reset dialog (opened from the menu)
   await tab('vList');
-  if (lang === 'en') { await page.waitForTimeout(250); readmeShots[0] = await page.screenshot({ type: 'jpeg', quality: 90 }); } // fuller list for the README picture
+  if (lang === 'en') { await settled(); await page.waitForTimeout(250); readmeShots[0] = await page.screenshot({ type: 'jpeg', quality: 90 }); } // fuller list for the README picture
   await page.click('#menuBtn'); await page.click('#menuReset'); await shot('reset'); await page.click('#resetCancel');
   // 6) share (demo mode keeps the shared list in the browser), the dialog with the QR code, then the menu
   await page.click('#shareBtn'); await page.click('#shareStart');
@@ -89,7 +92,7 @@ async function scenes(browser, base, lang) {
   await row('#items', 'Äpfel').locator('[data-chk]').click(); await page.waitForTimeout(150);
   await tab('vDeposit'); for (let i = 0; i < 3; i++) { await page.click('[data-dep-add="3"]'); await page.waitForTimeout(80); }   // Ben: 1 item + 3 pieces = 4
   await tab('vScore'); await shot('ranking');
-  if (lang === 'en') readmeShots[1] = await page.screenshot({ type: 'jpeg', quality: 90 }); // for the README picture
+  if (lang === 'en') { await settled(); readmeShots[1] = await page.screenshot({ type: 'jpeg', quality: 90 }); } // for the README picture
 
   await context.close();
   if (errors.length) throw new Error(`page errors in ${lang}: ${errors.join('; ')}`);
@@ -102,9 +105,9 @@ async function phoneFrame(browser) {
   const page = await browser.newPage({ viewport: { width: 1500, height: 1500 } });
   await page.setContent(`<style>body{margin:0;background:transparent;font-family:-apple-system,'Segoe UI',Roboto,sans-serif}#row{display:inline-flex;gap:40px;padding:2px}figure{margin:0;text-align:center}figcaption{margin-top:18px;font-size:34px;color:#7a8290}
 .f{background:#111;padding:8px;border-radius:30px;box-shadow:0 0 0 1px rgba(255,255,255,.12)}.f img{display:block;width:600px;border-radius:22px}</style><body><div id="row">${phones}</div></body>`);
-  await page.locator('#row').screenshot({ path: path.join(OUT, 'readme-phones-2.png'), omitBackground: true });
+  await page.locator('#row').screenshot({ path: path.join(OUT, 'readme-phones-3.png'), omitBackground: true });
   await page.close();
-  console.log('  readme-phones-2.png');
+  console.log('  readme-phones-3.png');
 }
 
 fs.mkdirSync(OUT, { recursive: true });
