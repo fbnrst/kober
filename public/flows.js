@@ -232,3 +232,17 @@ export function historyMatches(list, q, limit = 4) {
     .sort((a, b) => (historyKey(b.t).startsWith(words[0]) - historyKey(a.t).startsWith(words[0])) || b.n - a.n || b.ts - a.ts)
     .slice(0, limit);
 }
+
+// Row taps: a tap counts only when the finger stayed put between press and release (a scroll or a drag never toggles a row)
+export const TAP_SLOP = 10;
+export function isTap(down, up, slop = TAP_SLOP) {
+  if (!down || !up) return true; // no press position known (keyboard click, assistive technology): a real click
+  return Math.hypot(up[0] - down[0], up[1] - down[1]) <= slop;
+}
+// Keyed row reuse: for every new row HTML string, the index of an old row with the identical string (each old row used
+// once), or -1 when the row must be built. Rows are told apart by their HTML alone, so an unchanged row keeps its DOM node.
+export function reuseRows(oldRows, newRows) {
+  const free = new Map();
+  (oldRows || []).forEach((h, i) => { if (!free.has(h)) free.set(h, []); free.get(h).push(i); });
+  return newRows.map(h => { const q = free.get(h); return q && q.length ? q.shift() : -1; });
+}
