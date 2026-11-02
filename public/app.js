@@ -740,7 +740,7 @@ $('#joinForm').onsubmit = e => {
   e.preventDefault();
   const c = parseListCode($('#codeIn').value);
   if (!c) { toast(t('notACode')); return; } // the dialog stays open with what was typed
-  closeJoin(); joinShared(c);
+  closeJoin(); joinFromUi(c);
 };
 const dropListData = c => { if (c) { dropSnapshot(localStorage, c); outbox.dropList(c); } }; // nothing to show or send for a list we left
 const forgetShared = () => {
@@ -802,6 +802,10 @@ $('#resetGo').onclick = async () => {
 };
 $('#menuLeave').onclick = async () => {
   if (!(await ask(`${t('confirmLeave')}\n\n${t('leaveCode', { code })}`, { yes: t('resetLeave') }))) return; // the code is shown so the person can come back
+  const copy = !isEmptyList(state.items) && await ask(t('confirmTakeCopy'), { yes: t('askTakeCopy'), no: t('askNoCopy') }); // the shared list stays as it is for the others
+  if (copy) { // the local list is empty while a shared one is open; the copy keeps item states, no points (like sharing in reverse)
+    try { await localStore.importList(LOCAL, { items: state.items, deposit: state.deposit }, myKey()); } catch (e) { toast(noDbMsg(e)); return; }
+  }
   forgetShared(); startLocal();
 };
 $('#deleteBtn').onclick = async () => {
@@ -881,7 +885,7 @@ async function handleCode(raw) {
   const c = classifyScan(raw, { join });
   if (join) { // scanning a list's QR code: only a list code or join link counts
     if (c.kind !== 'list') { scanMsg(t('notAList'), true); return; } // keep looking
-    closeScanner(); joinShared(c.code); return;
+    closeScanner(); joinFromUi(c.code); return;
   }
   if (scanBusy) return; scanBusy = true;
   try {
@@ -1041,8 +1045,6 @@ function enterApp() {
   $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide');
   for (const id of ['#menuShare', '#menuReset', '#menuJoin', '#menuLeave']) $(id).classList.remove('hide'); // #menuLeave is hidden on the local list by CSS (body.local)
   document.body.classList.toggle('local', isLocal());
-  $('#menuMember').textContent = isLocal() ? '' : t('menuMember', { code }); // status line instead of the hidden "Join list"; not focusable, so the menu keys skip it
-  $('#menuMember').classList.remove('hide');
   show('vList');
   connect();
 }
@@ -1058,6 +1060,15 @@ async function startShared(c) {
   enterApp();
 }
 // `fallback`: where to go when the list cannot be joined; `joined`: runs once the list is open
+// Join from the menu, the scanner or the empty-list hint: on a shared list this leaves it, so ask first
+async function joinFromUi(c) {
+  if (isLocal()) return joinShared(c);
+  if (c === code) { toast(t('alreadyMember')); return; }
+  const old = code, n = outbox.count(old), lost = n ? `\n\n${t(n === 1 ? 'confirmSwitchPending1' : 'confirmSwitchPending', { n })}` : '';
+  if (!(await ask(t('confirmSwitchList', { from: old, to: c }) + lost, { yes: t('askSwitch'), danger: !!n }))) return;
+  const back = () => startShared(old).catch(e => { toast(noDbMsg(e)); startLocal(); }); // not joinable: the list we had stays open
+  joinShared(c, { fallback: back, joined: () => dropListData(old) });
+}
 async function joinShared(c, { fallback = startLocal, joined = () => {} } = {}) {
   const go = async () => {
     try {
