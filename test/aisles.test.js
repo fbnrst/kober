@@ -43,10 +43,10 @@ test('a learned choice wins over the dictionary, and "automatic" removes it', ()
   assert.equal(aisleKey('Möhren!'), 'moehren');
 });
 
-test('groups come in walking order, only non-empty ones, other last, order inside kept', () => {
+test('groups come in walking order, only non-empty ones, chilled and frozen below other, order inside kept', () => {
   const items = ['Seife', 'unbekannt', 'Milch', 'Apfel', 'Birne'].map((title, n) => ({ id: 'i' + n, title }));
   const g = groupByAisle(items);
-  assert.deepEqual(g.map(x => x.aisle), ['produce', 'chilled', 'household', 'other']);
+  assert.deepEqual(g.map(x => x.aisle), ['produce', 'household', 'other', 'chilled']);
   assert.deepEqual(g[0].items.map(i => i.title), ['Apfel', 'Birne']);
   assert.deepEqual(g.map(x => x.aisle).filter(a => a !== OTHER), AISLES.filter(a => g.some(x => x.aisle === a)));
 });

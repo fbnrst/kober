@@ -11,7 +11,7 @@ import { createCamera, productName } from './scan.js';
 import { t, applyStatic } from './i18n.js';
 import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan } from './flows.js';
 import { planMove, planDrop, sortOpen } from './order.js';
-import { AISLES, OTHER, aisleOf, groupByAisle, sanitizeOverrides, withChoice, guessAisle } from './aisles.js';
+import { ORDER, OTHER, aisleOf, groupByAisle, sanitizeOverrides, withChoice, guessAisle } from './aisles.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
 
 const $ = s => document.querySelector(s);
@@ -167,7 +167,7 @@ let reorder = false;
 // The sections that have items (in reorder mode too: an empty heading appearing would push the rows down)
 const aisleGroups = open => {
   const by = new Map(groupByAisle(open, aisleOver).map(g => [g.aisle, g.items]));
-  return [...AISLES, OTHER].map(a => ({ aisle: a, items: by.get(a) || [] })).filter(g => g.items.length);
+  return ORDER.map(a => ({ aisle: a, items: by.get(a) || [] })).filter(g => g.items.length);
 };
 // Moving an item into a section remembers it on this phone (the order itself is shared); the automatic section forgets the choice
 const putInSection = (title, aisle) => {

@@ -3,8 +3,10 @@
 // An item that matches nothing is "other" (shown last): a wrong group costs more than none, so there is no guessing.
 
 // Default walking order of the groups; "other" always comes last
-export const AISLES = ['produce', 'bakery', 'dairy', 'chilled', 'meat', 'frozen', 'spreads', 'cereal', 'baking', 'pasta', 'spices', 'coffee', 'snacks', 'drinks', 'household'];
+export const AISLES = ['produce', 'bakery', 'dairy', 'meat', 'spreads', 'cereal', 'baking', 'pasta', 'spices', 'coffee', 'snacks', 'drinks', 'household', 'chilled', 'frozen'];
 export const OTHER = 'other';
+// Chilled and frozen goods are fetched last (they stay cold), so they sit below even "other"
+export const ORDER = [...AISLES.filter(a => a !== 'chilled' && a !== 'frozen'), OTHER, 'chilled', 'frozen'];
 export const MAX_OVERRIDES = 500;
 
 // Keywords are folded (lower case, umlauts as ae/oe/ue, ß as ss) and matched inside each word of the item.
@@ -62,7 +64,7 @@ export const aisleOf = (title, overrides = {}) => overrides[aisleKey(title)] || 
 
 // Items split into groups in walking order, only the groups that have items; the order inside a group is kept
 export function groupByAisle(items, overrides = {}) {
-  const groups = new Map([...AISLES, OTHER].map(a => [a, []]));
+  const groups = new Map(ORDER.map(a => [a, []]));
   for (const i of items) groups.get(aisleOf(i.title, overrides)).push(i);
   return [...groups].filter(([, list]) => list.length).map(([aisle, list]) => ({ aisle, items: list }));
 }
