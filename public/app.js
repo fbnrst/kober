@@ -948,6 +948,8 @@ function enterApp() {
   $('#tabs').classList.remove('hide'); $('#shareBtn').classList.remove('hide');
   for (const id of ['#menuShare', '#menuReset', '#menuJoin', '#menuLeave']) $(id).classList.remove('hide'); // #menuLeave is hidden on the local list by CSS (body.local)
   document.body.classList.toggle('local', isLocal());
+  $('#menuMember').textContent = isLocal() ? '' : t('menuMember', { code }); // status line instead of the hidden "Join list"; not focusable, so the menu keys skip it
+  $('#menuMember').classList.remove('hide');
   show('vList');
   connect();
 }

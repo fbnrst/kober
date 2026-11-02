@@ -118,7 +118,7 @@ test('first share: a failed upload leaves the local list untouched and a retry g
 });
 
 test('new strings exist in both languages; the wording is aligned', () => {
-  for (const k of ['resetScores', 'vgUnreachable', 'tryAgain', 'leaveCode', 'joiningList']) {
+  for (const k of ['resetScores', 'vgUnreachable', 'tryAgain', 'leaveCode', 'joiningList', 'menuMember']) {
     assert.ok(STRINGS.en[k] && STRINGS.de[k], k);
   }
   assert.match(STRINGS.en.leaveCode, /\{code\}/); assert.match(STRINGS.de.leaveCode, /\{code\}/);

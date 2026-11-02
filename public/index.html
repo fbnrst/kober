@@ -76,7 +76,7 @@ header :focus{outline-color:var(--hdr-fg)}
 #addBar{position:relative;flex:none;z-index:6;background:var(--bg);border-top:1px solid var(--line);padding:8px 12px}
 #addBar>form{max-width:640px;margin-left:auto;margin-right:auto}
 #addBar form{margin:0}
-body.local .tabs [data-t=vScore],body.local #connBanner,body.local #menuLeave,body:not(.local) #menuJoin{display:none}
+body.local .tabs [data-t=vScore],body.local #connBanner,body.local #menuLeave,body.local #menuMember,body:not(.local) #menuJoin{display:none}
 body.typing .tabs{display:none}
 .tabs{flex:none;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 .tabs button{flex:1;min-width:0;min-height:var(--tabs);padding:5px 2px 4px;border:0;background:none;color:var(--mute);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.15;text-align:center}
@@ -258,6 +258,7 @@ body.typing .tabs{display:none}
     <button id="menuShare" class="hide" type="button" role="menuitem">Share list</button>
     <button id="menuReset" class="hide" type="button" role="menuitem">Reset list</button>
     <button id="menuJoin" class="hide" type="button" role="menuitem">Join list</button>
+    <div id="menuMember" class="menuVersion hide" role="none"></div>
     <button id="menuLeave" class="hide" type="button" role="menuitem">Leave list</button>
     <button id="menuAisles" type="button" role="menuitemcheckbox" aria-checked="false">Sort by store section</button>
     <a href="docs/index.html" id="helpLink" role="menuitem">Help</a><a href="privacy.html" class="privacyLink" role="menuitem">Privacy</a>
