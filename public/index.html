@@ -89,7 +89,7 @@ body.typing .tabs{display:none}
 .chk::after{content:'';position:absolute;inset:-11px -4px -11px -19px} /* visual size stays small, the tap area does not (44px, mostly to the left: a number chip may sit right next to the box) */
 .item.done .chk{background:var(--tone-bg) var(--tick) center/15px no-repeat}
 .item.done .t{text-decoration:line-through;color:var(--mute)}
-.t{flex:1;min-width:84px;overflow-wrap:anywhere;padding-right:8px} /* room for the sideways tap area of the number chip, so it does not reach the × *//* Suggestions float above the input bar instead of growing it: the input must not move while they appear */
+.t{flex:1;min-width:84px;overflow-wrap:anywhere}/* Suggestions float above the input bar instead of growing it: the input must not move while they appear */
 #addSuggest{position:absolute;left:12px;right:12px;bottom:100%;margin:0 auto 6px;max-width:640px;display:flex;flex-direction:column;gap:6px;padding:6px;background:var(--bg);border:1px solid var(--line);border-radius:12px;box-shadow:0 -6px 18px var(--shadow-suggest);max-height:min(360px,calc(var(--app-h,100vh) - 150px));overflow:auto;z-index:8}
 #addSuggest .sug,#scanSuggest .sug{display:flex;gap:12px;align-items:baseline;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--fg);font:inherit}
 #addSuggest .sug b,#scanSuggest .sug b{min-width:48px;color:var(--green);font-variant-numeric:tabular-nums}
