@@ -179,7 +179,8 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
     const before = await rowHeight(text);
     if (!before) { violations.push(`[${tag}] ${what}: row "${text}" not found`); return; }
     await run(); await page.waitForTimeout(250);
-    const after = await rowHeight(text);
+    let after = await rowHeight(text);
+    for (let k = 0; k < 10 && !(after && after.done); k++) { await page.waitForTimeout(100); after = await rowHeight(text); } // a change from another tab arrives a little later on a busy machine (the grace time is 4 s)
     if (!after || !after.done) violations.push(`[${tag}] ${what}: the check was not applied to "${text}"`);
     else if (Math.abs(after.h - before.h) > 0.5) violations.push(`[${tag}] ${what}: row "${text}" changed its height while lingering (${before.h} -> ${after.h})`);
     await undo(); await page.waitForTimeout(600);
