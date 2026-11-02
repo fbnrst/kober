@@ -3,7 +3,7 @@
 // An item that matches nothing is "other" (shown last): a wrong group costs more than none, so there is no guessing.
 
 // Default walking order of the groups; "other" always comes last
-export const AISLES = ['bakery', 'produce', 'dairy', 'meat', 'spreads', 'cereal', 'baking', 'pasta', 'spices', 'coffee', 'snacks', 'drinks', 'household', 'chilled', 'frozen'];
+export const AISLES = ['bakery', 'produce', 'dairy', 'spreads', 'cereal', 'baking', 'pasta', 'spices', 'coffee', 'snacks', 'drinks', 'household', 'chilled', 'frozen'];
 export const OTHER = 'other';
 // Chilled and frozen goods are fetched last (they stay cold), so they sit below even "other"
 export const ORDER = [...AISLES.filter(a => a !== 'chilled' && a !== 'frozen'), OTHER, 'chilled', 'frozen'];
@@ -13,7 +13,7 @@ export const MAX_OVERRIDES = 500;
 const WORDS = {
   produce: 'apfel,aepfel,birne,banane,orange,mandarine,clementine,zitrone,limette,grapefruit,traube,erdbeere,himbeere,beere,kirsche,pflaume,zwetschge,pfirsich,nektarine,aprikose,melone,ananas,mango,kiwi,avocado,granatapfel,feige,kaki,papaya,maracuja,physalis,quitte,rhabarber,kokosnuss,kartoffel,zwiebel,knoblauch,lauch,porree,schalotte,moehre,karotte,sellerie,pastinake,kohlrabi,radieschen,rettich,gurke,tomate,paprika,peperoni,chili,zucchini,aubergine,kuerbis,hokkaido,brokkoli,broccoli,blumenkohl,rosenkohl,kohl,wirsing,spinat,mangold,fenchel,spargel,pilz,champignon,salat,rucola,chicoree,radicchio,ingwer,meerrettich,gemuese,sprossen,petersilie,schnittlauch,basilikum,dill,koriander,minze,rosmarin,thymian,salbei,oregano,baerlauch,kraeuter,obst,zuckermais,erbsen,bohnen,kresse,suesskartoffel,schoten,mais',
   dairy: 'ei,eier,sojadrink,haferdrink,mandeldrink,mandelmilch,hafermilch,sojamilch,reismilch,haselnussmilch',
-  chilled: 'milch,sahne,schmand,joghurt,quark,skyr,butter,margarine,kaese,gouda,emmentaler,camembert,mozzarella,feta,parmesan,frischkaese,kefir,pudding,nachtisch,dessert,tofu,tempeh,seitan',
+  chilled: 'milch,sahne,schmand,joghurt,quark,skyr,butter,margarine,kaese,gouda,emmentaler,camembert,mozzarella,feta,parmesan,frischkaese,kefir,pudding,nachtisch,dessert,tofu,tempeh,seitan,wurst,aufschnitt,schinken,lachs,fisch,fleisch,hack,sojaschnetzel,burger,falafel,bratling,salami,speck,haehn,huhn,pute,rind,schwein,steak,brust',
   bakery: 'brot,broetchen,semmel,baguette,croissant,brezel,kuchen,toast,knaeckebrot,zwieback,torte,gebaeck,blaetterteig,hefeteig,laugen',
   spreads: 'marmelade,honig,sirup,dicksaft,nutella,nussmus,erdnussmus,erdnussmuss,mandelmus,cashewmus,erdnussbutter,tahini,aufstrich,bionella,zwergenwiese',
   cereal: 'haferflocken,flocken,muesli,cornflakes,granola,porridge,cerealien',
@@ -23,7 +23,6 @@ const WORDS = {
   coffee: 'tee,kaffee,kaffeebohnen,espresso,kakao',
   snacks: 'nuss,nuesse,mandel,cashew,erdnuss,sonnenblumenkerne,kuerbiskerne,leinsamen,chiasamen,sesam,pinienkern,pistazie,studentenfutter,rosinen,datteln,trockenfruechte,trockenobst,cranberr,schokolade,gummibaer,chips,salzstangen,riegel,popcorn,bonbon,lakritz,marzipan,nougat,cracker,reiswaffel,keks',
   drinks: 'wasser,sprudel,saft,schorle,limonade,cola,bier,wein,sekt,getraenk,pfand,limo,prosecco,spirituose,wodka,gin,whisky,radler,drink,eistee',
-  meat: 'wurst,aufschnitt,schinken,lachs,fisch,fleisch,hack,sojaschnetzel,burger,falafel,bratling,salami,speck,haehn,huhn,pute,rind,schwein,steak,brust',
   frozen: 'tk,tiefkuehl,pizza,pommes,kroketten,eis,eiswuerfel,beerenmix,blattspinat,eiscreme',
   household: 'zahnpasta,zahnbuerste,zahnseide,seife,duschgel,dusch,shampoo,deo,handcreme,toilettenpapier,klopapier,kuechenrolle,taschentuecher,spuelmittel,spuelbuerste,waschmittel,weichspueler,putzmittel,reiniger,muellbeutel,gefrierbeutel,backpapier,alufolie,frischhaltefolie,serviette,kerze,streichhoelzer,batterie,gluehbirne,windel,feuchttuecher,tampon,binde,spuelmaschine,schwamm,tragetasche,blumen,katzenfutter,hundefutter,futter,leckerli,rasier,sonnencreme,geschirrtuch,schere,filter',
 };

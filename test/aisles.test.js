@@ -7,9 +7,8 @@ test('everyday items land in the aisle a shopper expects', () => {
   const expect = {
     produce: ['Äpfel', 'Rote Bete', 'Chicorée', 'Weißkohl', 'Zuckerschoten', 'Gurke', 'Mais'],
     dairy: ['Eier', 'Eier Freiland', 'Ei', 'Rührei', 'Hafer Barista', 'Haferdrink', 'H-Milch', 'Mandelmilch'],
-    chilled: ['Tofu', 'Milch', 'Frischkäse', 'Butter', 'Nachtisch', 'Joghurt'],
+    chilled: ['Tofu', 'Milch', 'Frischkäse', 'Butter', 'Nachtisch', 'Joghurt', 'Hackfleisch', 'Räucherlachs', 'Bratwurst', 'Hühnerbrust'],
     bakery: ['Brötchen', 'Vollkornbrot', 'Käsekuchen', 'Laugenbrezel'],
-    meat: ['Hackfleisch', 'Räucherlachs', 'Bratwurst', 'Hühnerbrust'],
     frozen: ['Tiefkühlpizza', 'Pommes', 'Eis', 'Beeren TK'],
     spreads: ['Bionella', 'Zwergenwiese', 'Erdnussmuß', 'Honig', 'Marmelade'],
     cereal: ['Müsli', 'Haferflocken', 'Cornflakes', 'Granola'],
