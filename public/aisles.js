@@ -3,7 +3,7 @@
 // An item that matches nothing is "other" (shown last): a wrong group costs more than none, so there is no guessing.
 
 // Default walking order of the groups; "other" always comes last
-export const AISLES = ['produce', 'bakery', 'dairy', 'meat', 'spreads', 'cereal', 'baking', 'pasta', 'spices', 'coffee', 'snacks', 'drinks', 'household', 'chilled', 'frozen'];
+export const AISLES = ['bakery', 'produce', 'dairy', 'meat', 'spreads', 'cereal', 'baking', 'pasta', 'spices', 'coffee', 'snacks', 'drinks', 'household', 'chilled', 'frozen'];
 export const OTHER = 'other';
 // Chilled and frozen goods are fetched last (they stay cold), so they sit below even "other"
 export const ORDER = [...AISLES.filter(a => a !== 'chilled' && a !== 'frozen'), OTHER, 'chilled', 'frozen'];
