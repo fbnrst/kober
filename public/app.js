@@ -1064,8 +1064,8 @@ async function startShared(c) {
 async function joinFromUi(c) {
   if (isLocal()) return joinShared(c);
   if (c === code) { toast(t('alreadyMember')); return; }
-  const old = code, n = outbox.count(old), lost = n ? `\n\n${t(n === 1 ? 'confirmSwitchPending1' : 'confirmSwitchPending', { n })}` : '';
-  if (!(await ask(t('confirmSwitchList', { from: old, to: c }) + lost, { yes: t('askSwitch'), danger: !!n }))) return;
+  const old = code;
+  if (!(await ask(t('confirmSwitchList', { from: old, to: c }), { yes: t('askSwitch') }))) return;
   const back = () => startShared(old).catch(e => { toast(noDbMsg(e)); startLocal(); }); // not joinable: the list we had stays open
   joinShared(c, { fallback: back, joined: () => dropListData(old) });
 }
