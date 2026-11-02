@@ -9,7 +9,7 @@ import { loadVg, similarNames } from './vg.js';
 import { toast, ask, asking, dismissKeyboard, loadScript, copyText } from './ui.js';
 import { createCamera, productName } from './scan.js';
 import { t, applyStatic } from './i18n.js';
-import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, isTap, reuseRows } from './flows.js';
+import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, isTap, reuseRows, nextLinger, GRACE_MS } from './flows.js';
 import { planMove, planDrop, sortOpen } from './order.js';
 import { ORDER, OTHER, aisleOf, groupByAisle, sanitizeOverrides, withChoice, guessAisle } from './aisles.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
@@ -58,6 +58,7 @@ const readOnly = () => { if (!stale) return false; toast(t('connCached')); retur
 // Delete without asking; the toast offers to bring the item back with all its data (same id, number, state)
 function deleteItem(it) {
   if (readOnly()) return;
+  endInteraction();
   const prev = { ...it }, c = code;
   bg.remove(c, it.id);
   const name = shortName(it.title);
@@ -173,8 +174,12 @@ const aisleGroups = open => {
 const putInSection = (title, aisle) => {
   aisleOver = withChoice(aisleOver, title, aisle === (guessAisle(title) || OTHER) ? null : aisle); LS.set('aisleOver', aisleOver);
 };
-function itemHtml(i) {
-  const by = !isLocal() && i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
+// Lingering rows (just checked, see nextLinger): from another person they say who it was, for the grace period
+let linger = new Map(), lingerPrev = null, lingerCode = null, lingerTimer = 0;
+const rowHtml = i => itemHtml(i, linger.has(i.id));
+function itemHtml(i, lingering = false) {
+  const by = !isLocal() && i.checked && i.checkedBy
+    ? `<span class="badge">${esc(lingering && i.checkedBy !== myKey() ? t('lingerBy', { name: i.checkedBy }) : i.checkedBy)}</span>` : '';
   const id = esc(i.id);
   // Number: open items without one get the quick field (entering it puts the item in the basket); every other item
   // shows a small button to change or add the number
@@ -208,6 +213,19 @@ function emptyHint() {
 // A number field on a row has focus (someone is typing a number): rebuilding the rows now would throw the digits and the
 // keyboard away, so the rows wait until the field is left (`rowsLater`). Our own submits blur the field first.
 let rowsLater = false;
+// While a finger is on the list (or it is still scrolling) other people's changes must not move rows under it: the rebuild
+// waits until ~600 ms after the last touch or scroll (own actions end the wait at once, see endInteraction)
+let interacting = false, interactTimer = 0;
+const INTERACT_MS = 600;
+function endInteraction() { clearTimeout(interactTimer); if (!interacting) return; interacting = false; if (rowsLater) render(); }
+function touchList(end) {
+  clearTimeout(interactTimer); interacting = true;
+  if (end) interactTimer = setTimeout(endInteraction, INTERACT_MS);
+}
+$('#items').addEventListener('pointerdown', () => touchList(false));
+$('#items').addEventListener('touchstart', () => touchList(false), { passive: true });
+for (const ev of ['pointerup', 'pointercancel', 'touchend', 'touchcancel']) $('#items').addEventListener(ev, () => { if (interacting) touchList(true); });
+document.addEventListener('scroll', e => { if (e.target.contains && e.target.contains($('#items'))) touchList(true); }, true);
 const rowFieldFocused = () => { const a = document.activeElement; return !!a && a.tagName === 'INPUT' && !!a.closest('#items, #doneItems'); };
 // A button that had keyboard focus is found again after the rebuild (the + of the empties, a check box, a checkout row)
 const FOCUS_KEYS = ['data-ordh', 'data-dep-add', 'data-dep-sub', 'data-chk', 'data-checkout', 'data-editnum'];
@@ -237,15 +255,20 @@ function render() {
   const typed = editingId ? document.querySelector('[data-vgedit] input')?.value : null; // survive re-renders while typing
   const refocus = focusedKey();
   const all = Object.values(state.items);
-  const open = sortOpen(all.filter(i => !i.checked)); // manual order (order.js); never moved = oldest first
+  // Items that were just checked off stay in place for a few seconds (see nextLinger); a cached or first snapshot sets no baseline
+  linger = nextLinger(linger, stale || lingerCode !== code ? null : lingerPrev, state.items, Date.now());
+  lingerPrev = stale ? null : state.items; lingerCode = code;
+  clearTimeout(lingerTimer);
+  if (linger.size) lingerTimer = setTimeout(render, GRACE_MS + 50 - Math.max(...[...linger.values()].map(v => Date.now() - v)));
+  const open = sortOpen(all.filter(i => !i.checked || linger.has(i.id))); // manual order (order.js); never moved = oldest first
   if (reorder && !open.length) reorder = false;
   $('#addForm').classList.toggle('hide', reorder); $('#orderBar').classList.toggle('hide', !reorder); // "Done" sits where the input bar was
   if (reorder) $('#addSuggest').classList.add('hide');
-  const done = all.filter(i => i.checked).sort((a, b) => (b.checkedAt || 0) - (a.checkedAt || 0)); // most recently checked off first
-  rowsLater = rowFieldFocused() || dragging;
+  const done = all.filter(i => i.checked && !linger.has(i.id)).sort((a, b) => (b.checkedAt || 0) - (a.checkedAt || 0)); // most recently checked off first
+  rowsLater = rowFieldFocused() || dragging || interacting;
   if (!rowsLater) {
     const stuckNow = first && loadingStuck && !stale && !isLocal();
-    const rows = !stuckNow && open.length ? (aisleOn ? aisleGroups(open).flatMap(g => [`<h3 class="aisleHead" data-aisle="${g.aisle}">${esc(t(AISLE_NAME[g.aisle]))}</h3>`, ...g.items.map(itemHtml)]) : open.map(itemHtml)) : [];
+    const rows = !stuckNow && open.length ? (aisleOn ? aisleGroups(open).flatMap(g => [`<h3 class="aisleHead" data-aisle="${g.aisle}">${esc(t(AISLE_NAME[g.aisle]))}</h3>`, ...g.items.map(rowHtml)]) : open.map(rowHtml)) : [];
     setRows($('#items'), rows, stuckNow ? `<div class="stuck"><p class="muted">${esc(t('connLoadingList'))}</p><button type="button" class="btn sec" id="useLocal">${esc(t('connUseLocal'))}</button></div>`
       : open.length ? ''
       : !isEmptyList(state.items) ? `<p class="muted" style="text-align:center">${t('allInBasket')}</p>`
@@ -253,7 +276,7 @@ function render() {
       : emptyHint());
     $('#doneCard').classList.toggle('hide', !done.length);
     $('#doneHead').textContent = t('inBasketHead', { n: done.length });
-    setRows($('#doneItems'), done.map(itemHtml));
+    setRows($('#doneItems'), done.map(rowHtml));
   }
   renderDeposit(); renderCheckout();
   if (editingId) {
@@ -329,7 +352,7 @@ function renderDeposit() {
 function setReorder(on) {
   if (on && (readOnly() || !Object.values(state.items).some(i => !i.checked))) return;
   if (on) dismissKeyboard();
-  reorder = on; render();
+  reorder = on; if (on) endInteraction(); render();
 }
 // Every write is a move of one item to a number (order.js); renumbering the list is several of them.
 const applyPlan = (id, plan) => { if (plan) for (const [mid, pos] of plan.renumber || [[id, plan.pos]]) bg.move(code, mid, pos); };
@@ -500,9 +523,16 @@ document.addEventListener('pointerdown', e => { tapDown = [e.clientX, e.clientY]
 function toggleItem(id) {
   const it = state.items[id];
   if (!it) return;
-  if (!it.checked) remember(it.title, it.vgNum);
-  bg.check(code, it.id, myKey(), !it.checked);
+  endInteraction(); // our own tap shows at once
+  const c = code, want = !it.checked; // the state the person SAW decides: an explicit target, never a blind toggle
+  if (want) remember(it.title, it.vgNum);
+  bg.check(c, it.id, myKey(), want);
+  if (want && !readOnlyQuiet()) { // one offer at a time, like deleteItem
+    const name = shortName(it.title);
+    toast(t('toastInBasket', { item: name }), { label: t('undo'), aria: t('ariaUndoBasket', { item: name }), run: () => { if (c === code) bg.check(c, it.id, myKey(), false); } });
+  }
 }
+const readOnlyQuiet = () => stale;
 // Empty a field and let its input handler catch up (suggestions, the add button, the camera of the scanner)
 function clearField(sel) { $(sel).value = ''; $(sel).dispatchEvent(new Event('input')); }
 const buzz = () => { if (navigator.vibrate) navigator.vibrate(60); }; // compat-ok: guarded, iOS has no vibration

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, shouldShowAndroidInstall, isAndroid, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, isTap, reuseRows, TICK_TTL, TICK_MAX } from '../public/flows.js';
+import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, shouldShowAndroidInstall, isAndroid, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, isTap, reuseRows, nextLinger, GRACE_MS, TICK_TTL, TICK_MAX } from '../public/flows.js';
 import { createStore, localAdapter, userKey } from '../public/store.js';
 import { createSim, createClock } from '../public/sim.js';
 import { STRINGS } from '../public/i18n.js';
@@ -280,4 +280,26 @@ test('reuseRows: identical rows are reused once each, changed rows are rebuilt',
   assert.deepEqual(reuseRows(['a'], ['a', 'a']), [0, -1]); // duplicates are not shared
   assert.deepEqual(reuseRows(null, ['a']), [-1]);
   assert.deepEqual(reuseRows(['a'], []), []);
+});
+
+test('nextLinger: an item seen turning checked lingers for the grace period, measured on this phone', () => {
+  const open = { a: { id: 'a', checked: false }, b: { id: 'b', checked: false } };
+  const one = { a: { id: 'a', checked: true, checkedAt: 1 }, b: { id: 'b', checked: false } }; // checkedAt (other clock) is ignored
+  let l = nextLinger(new Map(), open, one, 1000);
+  assert.deepEqual([...l], [['a', 1000]]);
+  l = nextLinger(l, one, one, 1000 + GRACE_MS - 1);
+  assert.equal(l.has('a'), true);
+  l = nextLinger(l, one, one, 1000 + GRACE_MS);
+  assert.equal(l.size, 0);
+  assert.equal(nextLinger(l, one, one, 1000 + GRACE_MS + 5).size, 0); // not restarted once expired
+});
+
+test('nextLinger: no linger for items checked at load, for unchecked or removed items', () => {
+  const checked = { a: { id: 'a', checked: true } };
+  assert.equal(nextLinger(new Map(), null, checked, 5).size, 0); // first load: no baseline
+  assert.equal(nextLinger(new Map(), {}, checked, 5).size, 0); // new item that arrives checked
+  const l = nextLinger(new Map(), { a: { id: 'a', checked: false } }, checked, 5);
+  assert.equal(l.size, 1);
+  assert.equal(nextLinger(l, checked, { a: { id: 'a', checked: false } }, 6).size, 0); // undone
+  assert.equal(nextLinger(l, checked, {}, 6).size, 0); // deleted
 });

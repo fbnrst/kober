@@ -246,3 +246,21 @@ export function reuseRows(oldRows, newRows) {
   (oldRows || []).forEach((h, i) => { if (!free.has(h)) free.set(h, []); free.get(h).push(i); });
   return newRows.map(h => { const q = free.get(h); return q && q.length ? q.shift() : -1; });
 }
+
+// Safety net against checking the wrong row when another phone's check-off makes rows jump: an item that turns checked
+// while this phone watches stays in the open list for GRACE_MS (struck through, still un-checkable) before it moves to the
+// basket. `since` maps id -> time this phone first saw it checked (this phone's clock, never the checker's checkedAt, so
+// clock differences between phones do not matter). `prevItems` is what was shown before (null = nothing known yet: items
+// already checked when the list loads do not linger). Returns the new map; ids still in it are the lingering ones.
+export const GRACE_MS = 4000;
+export function nextLinger(since, prevItems, items, now, grace = GRACE_MS) {
+  const out = new Map();
+  for (const i of Object.values(items || {})) {
+    if (!i.checked) continue;
+    const t0 = since && since.get(i.id);
+    if (t0 !== undefined) { if (now - t0 < grace) out.set(i.id, t0); continue; }
+    const was = prevItems && prevItems[i.id];
+    if (was && !was.checked) out.set(i.id, now); // seen turning checked just now
+  }
+  return out;
+}
