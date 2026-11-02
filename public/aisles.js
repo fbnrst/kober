@@ -3,14 +3,15 @@
 // An item that matches nothing is "other" (shown last): a wrong group costs more than none, so there is no guessing.
 
 // Default walking order of the groups; "other" always comes last
-export const AISLES = ['produce', 'bakery', 'dairy', 'meat', 'frozen', 'spreads', 'cereal', 'baking', 'pasta', 'spices', 'coffee', 'snacks', 'drinks', 'household'];
+export const AISLES = ['produce', 'bakery', 'dairy', 'chilled', 'meat', 'frozen', 'spreads', 'cereal', 'baking', 'pasta', 'spices', 'coffee', 'snacks', 'drinks', 'household'];
 export const OTHER = 'other';
 export const MAX_OVERRIDES = 500;
 
 // Keywords are folded (lower case, umlauts as ae/oe/ue, ß as ss) and matched inside each word of the item.
 const WORDS = {
   produce: 'apfel,aepfel,birne,banane,orange,mandarine,clementine,zitrone,limette,grapefruit,traube,erdbeere,himbeere,beere,kirsche,pflaume,zwetschge,pfirsich,nektarine,aprikose,melone,ananas,mango,kiwi,avocado,granatapfel,feige,kaki,papaya,maracuja,physalis,quitte,rhabarber,kokosnuss,kartoffel,zwiebel,knoblauch,lauch,porree,schalotte,moehre,karotte,sellerie,pastinake,kohlrabi,radieschen,rettich,gurke,tomate,paprika,peperoni,chili,zucchini,aubergine,kuerbis,hokkaido,brokkoli,broccoli,blumenkohl,rosenkohl,kohl,wirsing,spinat,mangold,fenchel,spargel,pilz,champignon,salat,rucola,chicoree,radicchio,ingwer,meerrettich,gemuese,sprossen,petersilie,schnittlauch,basilikum,dill,koriander,minze,rosmarin,thymian,salbei,oregano,baerlauch,kraeuter,obst,zuckermais,erbsen,bohnen,kresse,suesskartoffel,schoten,mais',
-  dairy: 'milch,sahne,schmand,joghurt,quark,skyr,butter,margarine,kaese,gouda,emmentaler,camembert,mozzarella,feta,parmesan,frischkaese,kefir,pudding,ei,eier,sojadrink,haferdrink,mandeldrink,mandelmilch,tofu,tempeh,seitan',
+  dairy: 'ei,eier,sojadrink,haferdrink,mandeldrink,mandelmilch,hafermilch,sojamilch,reismilch,haselnussmilch',
+  chilled: 'milch,sahne,schmand,joghurt,quark,skyr,butter,margarine,kaese,gouda,emmentaler,camembert,mozzarella,feta,parmesan,frischkaese,kefir,pudding,nachtisch,dessert,tofu,tempeh,seitan',
   bakery: 'brot,broetchen,semmel,baguette,croissant,brezel,kuchen,toast,knaeckebrot,zwieback,torte,gebaeck,blaetterteig,hefeteig,laugen',
   spreads: 'marmelade,honig,sirup,dicksaft,nutella,nussmus,erdnussmus,erdnussmuss,mandelmus,cashewmus,erdnussbutter,tahini,aufstrich,bionella,zwergenwiese',
   cereal: 'haferflocken,flocken,muesli,cornflakes,granola,porridge,cerealien',
@@ -26,7 +27,7 @@ const WORDS = {
 };
 // Words that count only as a whole word (the short ones would hit inside other words) and cans that decide on their own
 const EXACT = new Set(['tk', 'ei', 'eier', 'eis', 'dose', 'glas', 'gin', 'deo', 'mais']);
-const PHRASES = [['rote bete', 'produce'], ['rote beete', 'produce'], ['hafer barista', 'dairy'], ['ruehrei', 'dairy'], ['spiegelei', 'dairy']];
+const PHRASES = [[' h milch', 'dairy'], ['rote bete', 'produce'], ['rote beete', 'produce'], ['hafer barista', 'dairy'], ['ruehrei', 'dairy'], ['spiegelei', 'dairy']];
 const CANNED = new Set(['dose', 'glas']);
 // Spellings that only differ by a diacritic: é in Chicorée, ñ and so on
 const fold = s => String(s).toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -40,7 +41,7 @@ export const aisleKey = title => fold(title).replace(/[^a-z0-9]+/g, ' ').trim().
 // of a word beats one in the middle (Apfelsaft is a drink, Gemüsebrühe is a stock).
 export function guessAisle(title) {
   const name = fold(title).replace(/[^a-z0-9 ]+/g, ' ');
-  const phrase = PHRASES.find(([p]) => name.includes(p));
+  const phrase = PHRASES.find(([p]) => ` ${name}`.includes(p));
   if (phrase) return phrase[1];
   let best = null;
   for (const tok of name.split(/\s+/).filter(Boolean)) {

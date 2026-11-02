@@ -157,7 +157,7 @@ function connect() {
 
 /* ---------- Rendering ---------- */
 // Aisle grouping of the open items: a switch in the "..." menu, off by default; what the person moves is remembered on this phone
-const AISLE_NAME = { produce: 'aisleProduce', bakery: 'aisleBakery', dairy: 'aisleDairy', meat: 'aisleMeat', frozen: 'aisleFrozen', spreads: 'aisleSpreads', cereal: 'aisleCereal', baking: 'aisleBaking', pasta: 'aislePasta', spices: 'aisleSpices', coffee: 'aisleCoffee', snacks: 'aisleSnacks', drinks: 'aisleDrinks', household: 'aisleHousehold', other: 'aisleOther' };
+const AISLE_NAME = { produce: 'aisleProduce', bakery: 'aisleBakery', dairy: 'aisleDairy', chilled: 'aisleChilled', meat: 'aisleMeat', frozen: 'aisleFrozen', spreads: 'aisleSpreads', cereal: 'aisleCereal', baking: 'aisleBaking', pasta: 'aislePasta', spices: 'aisleSpices', coffee: 'aisleCoffee', snacks: 'aisleSnacks', drinks: 'aisleDrinks', household: 'aisleHousehold', other: 'aisleOther' };
 let aisleOn = LS.get('aisles', false) === true;
 let aisleOver = sanitizeOverrides(LS.get('aisleOver', {}));
 // Reorder mode (long press on an open item): the rows stay exactly as they are, only the check box of each open row becomes a
@@ -353,6 +353,7 @@ $('#items').addEventListener('pointerdown', e => {
   const lo = all[0].getBoundingClientRect().top - r0.top, hi = all[all.length - 1].getBoundingClientRect().bottom - r0.bottom;
   const headTops = boxes.map(b => (b.head ? b.head.getBoundingClientRect().top : -Infinity));
   const mids = new Map(boxes.flatMap(b => b.rows).map(r => { const q = r.getBoundingClientRect(); return [r, q.top + q.height / 2]; }));
+  const scroll0 = ($('#items').closest('main') || $('#items').parentElement).scrollTop;
   let dest = from, at = from.rows.indexOf(row);
   dragging = true; row.classList.add('drag'); h.setPointerCapture(e.pointerId);
   const mark = () => {
@@ -363,8 +364,18 @@ $('#items').addEventListener('pointerdown', e => {
     else if (dest.head) dest.head.classList.add('dropAfter');
     if (dest.head && dest !== from) dest.head.classList.add('dropSec');
   };
-  const move = ev => {
-    const dy = Math.min(hi, Math.max(lo, ev.clientY - startY));
+  // Near the top or bottom edge of the list the view scrolls on its own, so a long list can be crossed in one drag
+  const scroller = $('#items').closest('main') || $('#items').parentElement;
+  let lastY = e.clientY, raf = 0;
+  const edge = () => {
+    const q = scroller.getBoundingClientRect(), zone = 56;
+    const v = lastY < q.top + zone ? -(q.top + zone - lastY) : lastY > q.bottom - zone ? lastY - (q.bottom - zone) : 0;
+    if (v) { scroller.scrollTop += Math.max(-18, Math.min(18, v / 3)); follow(); raf = requestAnimationFrame(edge); } else raf = 0;
+  };
+  const move = ev => { lastY = ev.clientY; follow(); if (!raf) raf = requestAnimationFrame(edge); };
+  const follow = () => {
+    const ev = { clientY: lastY };
+    const dy = Math.min(hi, Math.max(lo, ev.clientY - startY + (scroller.scrollTop - scroll0)));
     row.style.transform = `translateY(${dy}px)`;
     const centre = r0.top + r0.height / 2 + dy;
     let b = 0; headTops.forEach((top, i) => { if (top <= centre) b = i; });
@@ -373,6 +384,7 @@ $('#items').addEventListener('pointerdown', e => {
     mark();
   };
   const end = ev => {
+    cancelAnimationFrame(raf);
     h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', end); h.removeEventListener('pointercancel', end);
     row.classList.remove('drag'); dragging = false;
     const others = dest.rows.filter(r => r !== row);

@@ -6,7 +6,8 @@ import { guessAisle, aisleOf, aisleKey, groupByAisle, sanitizeOverrides, withCho
 test('everyday items land in the aisle a shopper expects', () => {
   const expect = {
     produce: ['Äpfel', 'Rote Bete', 'Chicorée', 'Weißkohl', 'Zuckerschoten', 'Gurke', 'Mais'],
-    dairy: ['Tofu', 'Milch', 'Eier', 'Eier Freiland', 'Ei', 'Rührei', 'Hafer Barista', 'Frischkäse', 'Haferdrink'],
+    dairy: ['Eier', 'Eier Freiland', 'Ei', 'Rührei', 'Hafer Barista', 'Haferdrink', 'H-Milch', 'Mandelmilch'],
+    chilled: ['Tofu', 'Milch', 'Frischkäse', 'Butter', 'Nachtisch', 'Joghurt'],
     bakery: ['Brötchen', 'Vollkornbrot', 'Käsekuchen', 'Laugenbrezel'],
     meat: ['Hackfleisch', 'Räucherlachs', 'Bratwurst', 'Hühnerbrust'],
     frozen: ['Tiefkühlpizza', 'Pommes', 'Eis', 'Beeren TK'],
@@ -38,14 +39,14 @@ test('unknown items are "other", never a guess', () => {
 test('a learned choice wins over the dictionary, and "automatic" removes it', () => {
   let o = withChoice({}, 'Milch', 'household');
   assert.equal(aisleOf('milch ', o), 'household');
-  assert.equal(aisleOf('Milch', withChoice(o, 'MILCH', null)), 'dairy');
+  assert.equal(aisleOf('Milch', withChoice(o, 'MILCH', null)), 'chilled');
   assert.equal(aisleKey('Möhren!'), 'moehren');
 });
 
 test('groups come in walking order, only non-empty ones, other last, order inside kept', () => {
   const items = ['Seife', 'unbekannt', 'Milch', 'Apfel', 'Birne'].map((title, n) => ({ id: 'i' + n, title }));
   const g = groupByAisle(items);
-  assert.deepEqual(g.map(x => x.aisle), ['produce', 'dairy', 'household', 'other']);
+  assert.deepEqual(g.map(x => x.aisle), ['produce', 'chilled', 'household', 'other']);
   assert.deepEqual(g[0].items.map(i => i.title), ['Apfel', 'Birne']);
   assert.deepEqual(g.map(x => x.aisle).filter(a => a !== OTHER), AISLES.filter(a => g.some(x => x.aisle === a)));
 });
