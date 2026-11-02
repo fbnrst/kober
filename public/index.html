@@ -87,6 +87,7 @@ body.typing .tabs{display:none}
 .item:last-child{border:0}
 .chk{position:relative;display:block;box-sizing:border-box;width:24px;height:24px;min-width:24px;max-width:24px;min-height:24px;padding:0;margin:0;-webkit-appearance:none;appearance:none;border-radius:50%;border:1.5px solid var(--tone-bd);background:none;flex:0 0 24px;color:var(--tone-fg);font-size:14px;line-height:1} /* quiet tonal style for small repeated controls (--tone-*), the filled --fill stays for primary actions */
 .chk::after{content:'';position:absolute;inset:-11px -4px -11px -19px} /* visual size stays small, the tap area does not (44px, mostly to the left: a number chip may sit right next to the box) */
+#doneItems .item{row-gap:12px} /* a basket row that wraps (long name, number, badge) keeps the number's tap area off the × below it; rows that linger in the open list are not affected, their height must not change */
 .item.done .chk{background:var(--tone-bg) var(--tick) center/15px no-repeat}
 .item.done .chk.by{background-image:none;font-size:14px;line-height:21px;text-align:center;padding:0} /* another person checked it: their emoji in place of the tick, same box (the row keeps its height) */
 .item.done .t{text-decoration:line-through;color:var(--mute)}

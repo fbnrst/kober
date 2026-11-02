@@ -268,6 +268,8 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
   await page.waitForSelector('#qr svg'); await check('share-dialog');
   await page.click('#shareClose');
   // shared list: four tabs, a badge with the long name, ranking with three players
+  await add('4490'); await blur(); // a long product name with its number and the player's badge: the number must not sit on top of the ×
+  await page.waitForFunction(() => !document.querySelector('#items .item.done'), null, { timeout: 8000 }); // it lingers a few seconds before it moves into the basket
   await page.click('#items .item:has-text("Äpfel") [data-chk]'); await page.waitForTimeout(200);
   await check('list-shared');
   // lingering rows on the shared list: checked by myself (my name shows nowhere), checked by another person (long names)
