@@ -212,7 +212,18 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
   if (joinOpen) await page.click('#joinClose');
   await page.click('#scanBtn'); await page.waitForTimeout(500); await check('scanner');
   await page.fill('#eanIn', '790'); await page.waitForTimeout(200); await check('scanner-manual');
-  await page.click('#scanClose');
+  // a scanned product with a name close to an open item without a number: it goes into the basket, then the app asks to strike
+  // the listed item ("Äpfel Elstar" is on the list; the demo product 4480 has the same name); yes deletes it, Undo brings it back
+  await page.fill('#eanIn', '4480'); await page.press('#eanIn', 'Enter');
+  await page.waitForSelector('#askDlg:not(.hide)'); await check('scan-strike-ask');
+  await page.click('#askYes'); await page.waitForSelector('#toast.act.show');
+  // a just checked item lingers in #items for a few seconds before it moves to #doneItems
+  const openRows = () => page.locator('#items .item:not(.done)', { hasText: 'Äpfel Elstar' }).count();
+  if ((await openRows()) !== 0) violations.push(`[${tag}] scan-strike: "Strike" did not remove the listed item`);
+  if (!(await page.locator('#items .item.done, #doneItems .item', { hasText: 'Äpfel Elstar' }).count())) violations.push(`[${tag}] scan-strike: the scanned product is not in the basket`);
+  await page.click('#toast .toastAct'); await page.waitForTimeout(300);
+  if ((await openRows()) !== 1) violations.push(`[${tag}] scan-strike: Undo did not bring the listed item back`);
+  if (await page.isVisible('#scanner')) violations.push(`[${tag}] scan-strike: the scanner stayed open`);
   // share: the dialog of the local list, then name and emoji, then the QR code
   await page.click('#shareBtn'); await page.waitForTimeout(100); await check('share-dialog-local');
   await page.click('#shareStart');
