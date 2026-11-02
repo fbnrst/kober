@@ -6,7 +6,7 @@ import { saveSnapshot, loadSnapshot, dropSnapshot, sanitize } from './cache.js';
 import { IS_DEV, NS } from './env.js';
 import { BUILD } from './version.js';
 import { loadVg, similarNames } from './vg.js';
-import { toast, ask, asking, dismissKeyboard, loadScript, copyText } from './ui.js';
+import { toast, hideToast, ask, asking, dismissKeyboard, loadScript, copyText } from './ui.js';
 import { createCamera, productName } from './scan.js';
 import { t, applyStatic } from './i18n.js';
 import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, findNameMatch, isTap, reuseRows, nextLinger, GRACE_MS } from './flows.js';
@@ -470,6 +470,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && reorder &&
 document.addEventListener('click', e => {
   if (e.target.closest('#vgRetry')) { vgLoader.start(); return; }
   if (e.target.closest('#useLocal')) { startLocal(); return; } // the saved list code stays, the next start tries it again
+  endInteraction(); // a click is the person's own action: the rows it changes show at once, not 600 ms later
   if (Date.now() < noClickUntil) return; // the click that ends a long press must not open the section dialog or tick the item
   const chk = e.target.closest('[data-chk]');
   if (chk) { toggleItem(chk.dataset.chk); return; }
@@ -748,6 +749,7 @@ const forgetShared = () => {
   const items = () => visibleFocusables(menu);
   const setOpen = open => {
     const was = !menu.classList.contains('hide');
+    if (open && $('#toast').classList.contains('act')) hideToast(); // an Undo offer would cover the first entries
     menu.classList.toggle('hide', !open); btn.setAttribute('aria-expanded', String(open));
     if (open && !was) { const first = items()[0]; if (first) first.focus(); } // keyboard users land on the first entry
   };

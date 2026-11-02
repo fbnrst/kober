@@ -32,7 +32,7 @@ export function toast(msg, action) {
   toastClock(toastMs(msg, action));
 }
 function toastClock(ms) { clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, ms); }
-function hideToast() {
+export function hideToast() {
   clearTimeout(toastTimer); $('#toast').classList.remove('show', 'act');
   if (toastWaiting) { const m = toastWaiting; toastWaiting = null; toast(m); }
 }
