@@ -114,6 +114,13 @@ document.addEventListener('visibilitychange', () => conn.setHidden(document.hidd
 addEventListener('online', () => { conn.wake(); vgLoader.start(); });
 
 /* ---------- Sync ---------- */
+// A row that is on screen shows a change itself (the "checked by" note on the row): no toast for it, only for rows out of sight
+function rowInView(id) {
+  const el = document.querySelector(`#items [data-chk="${CSS.escape(id)}"]`), box = document.querySelector('main').getBoundingClientRect();
+  if (!el || !box.height) return false; // not rendered, or another tab is showing
+  const r = el.getBoundingClientRect();
+  return r.bottom > box.top && r.top < box.bottom;
+}
 function onSnapshot(s) {
   if (!isLocal() && !(s && s.meta)) {
     if (shouldForgetList(s, conn.state())) { // the shared list was deleted (by someone else or by the cleanup)
@@ -127,7 +134,7 @@ function onSnapshot(s) {
     const news = [];
     for (const i of Object.values(next.items)) {
       const was = state.items[i.id];
-      if (i.checked && !(was && was.checked) && i.checkedBy && i.checkedBy !== myKey()) news.push({ who: i.checkedBy, msg: t('toastCheckedBy', { who: i.checkedBy, item: i.title }) });
+      if (i.checked && !(was && was.checked) && i.checkedBy && i.checkedBy !== myKey()) { if (!rowInView(i.id)) news.push({ who: i.checkedBy, msg: t('toastCheckedBy', { who: i.checkedBy, item: i.title }) }); }
       else if (!was && i.addedBy && i.addedBy !== myKey()) news.push({ who: i.addedBy, msg: t('toastAddedBy', { who: i.addedBy, item: i.title }) });
     }
     if (news.length === 1) toast(news[0].msg);
