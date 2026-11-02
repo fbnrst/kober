@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, shouldShowAndroidInstall, isAndroid, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, TICK_TTL, TICK_MAX } from '../public/flows.js';
+import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, shouldShowAndroidInstall, isAndroid, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, isTap, reuseRows, TICK_TTL, TICK_MAX } from '../public/flows.js';
 import { createStore, localAdapter, userKey } from '../public/store.js';
 import { createSim, createClock } from '../public/sim.js';
 import { STRINGS } from '../public/i18n.js';
@@ -265,4 +265,19 @@ test('computeBadges: ties share, thresholds apply, nothing for a single player o
   assert.deepEqual(computeBadges({ scores: { [A]: 1, [B]: 1 }, deposit: { 1: { [A]: 3, [B]: 3 } } }), { [A]: ['empties'], [B]: ['empties'] });
   assert.deepEqual(computeBadges({ scores: { [A]: 1, [B]: 1 }, items: { x: { checked: true, checkedBy: '👻 Gone', checkedAt: 1 } }, deposit: { 1: null } }), {});
   assert.deepEqual(computeBadges(), {});
+});
+
+test('isTap: a press and release that stay within the slop is a tap, a drag is not', () => {
+  assert.equal(isTap([10, 10], [10, 10]), true);
+  assert.equal(isTap([10, 10], [16, 18]), true); // exactly 10 px
+  assert.equal(isTap([10, 10], [10, 25]), false); // a scroll started
+  assert.equal(isTap(null, [1, 1]), true); // keyboard click
+});
+
+test('reuseRows: identical rows are reused once each, changed rows are rebuilt', () => {
+  assert.deepEqual(reuseRows(['a', 'b', 'c'], ['a', 'c']), [0, 2]);
+  assert.deepEqual(reuseRows(['a', 'b'], ['b', 'x', 'a']), [1, -1, 0]);
+  assert.deepEqual(reuseRows(['a'], ['a', 'a']), [0, -1]); // duplicates are not shared
+  assert.deepEqual(reuseRows(null, ['a']), [-1]);
+  assert.deepEqual(reuseRows(['a'], []), []);
 });

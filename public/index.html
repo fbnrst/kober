@@ -83,7 +83,7 @@ body.typing .tabs{display:none}
 .tabs button span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(12px,min(.875rem,4.4vw),18px)} /* 14px; follows a larger root font size (browser text size) as far as the label still fits its quarter of the width, ellipsis only as a last resort */
 .tabs button.on{color:var(--green);font-weight:700}
 .tabs svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round} /* line icons in the text colour: quiet, and green on the active tab; the icon sits above the label so four tabs fit at 320px */
-.item{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;min-height:42px;padding:5px 2px;border-bottom:1px solid var(--line);line-height:1.25}
+.item{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;min-height:48px;padding:6px 2px;cursor:pointer;border-bottom:1px solid var(--line);line-height:1.25}
 .item:last-child{border:0}
 .chk{position:relative;display:block;box-sizing:border-box;width:24px;height:24px;min-width:24px;max-width:24px;min-height:24px;padding:0;margin:0;-webkit-appearance:none;appearance:none;border-radius:50%;border:1.5px solid var(--tone-bd);background:none;flex:0 0 24px;color:var(--tone-fg);font-size:14px;line-height:1} /* quiet tonal style for small repeated controls (--tone-*), the filled --fill stays for primary actions */
 .chk::after{content:'';position:absolute;inset:-11px -4px -11px -19px} /* visual size stays small, the tap area does not (44px, mostly to the left: a number chip may sit right next to the box) */

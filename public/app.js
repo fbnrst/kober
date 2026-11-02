@@ -9,7 +9,7 @@ import { loadVg, similarNames } from './vg.js';
 import { toast, ask, asking, dismissKeyboard, loadScript, copyText } from './ui.js';
 import { createCamera, productName } from './scan.js';
 import { t, applyStatic } from './i18n.js';
-import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan } from './flows.js';
+import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, isTap, reuseRows } from './flows.js';
 import { planMove, planDrop, sortOpen } from './order.js';
 import { ORDER, OTHER, aisleOf, groupByAisle, sanitizeOverrides, withChoice, guessAisle } from './aisles.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
@@ -215,6 +215,23 @@ function focusedKey() {
   const a = document.activeElement, k = a && a.tagName === 'BUTTON' && FOCUS_KEYS.find(x => a.hasAttribute(x));
   return k ? `[${k}="${CSS.escape(a.getAttribute(k))}"]` : null;
 }
+// Keyed row reuse: `rows` are the HTML strings of the top-level elements of a container (one element each). A row whose
+// string did not change keeps its DOM node (focus and the browser's work stay); only new rows are built, moved ones are
+// re-inserted, gone ones removed. Without rows the container just gets `fallback` (plain HTML).
+function setRows(el, rows, fallback = '') {
+  const known = el._nodes && el.children.length === el._nodes.length && el._nodes.every((n, i) => el.children[i] === n);
+  if (!rows.length || !known) { el.innerHTML = rows.length ? '' : fallback; el._rows = []; el._nodes = []; } // not a row container (any more): start over
+  const from = reuseRows(el._rows, rows), old = el._nodes, tpl = document.createElement('template');
+  const nodes = rows.map((h, i) => {
+    if (from[i] >= 0) return old[from[i]];
+    tpl.innerHTML = h;
+    return tpl.content.firstElementChild;
+  });
+  const keep = new Set(nodes);
+  for (const n of old) if (!keep.has(n)) n.remove();
+  nodes.forEach((n, i) => { if (el.children[i] !== n) el.insertBefore(n, el.children[i] || null); });
+  el._rows = rows; el._nodes = nodes;
+}
 function render() {
   state = isLocal() ? raw : outbox.overlayFor(raw, code); // changes waiting to be sent show at once; a live snapshot replaces `raw`
   const typed = editingId ? document.querySelector('[data-vgedit] input')?.value : null; // survive re-renders while typing
@@ -227,14 +244,16 @@ function render() {
   const done = all.filter(i => i.checked).sort((a, b) => (b.checkedAt || 0) - (a.checkedAt || 0)); // most recently checked off first
   rowsLater = rowFieldFocused() || dragging;
   if (!rowsLater) {
-    $('#items').innerHTML = first && loadingStuck && !stale && !isLocal() ? `<div class="stuck"><p class="muted">${esc(t('connLoadingList'))}</p><button type="button" class="btn sec" id="useLocal">${esc(t('connUseLocal'))}</button></div>`
-      : open.length ? (aisleOn ? aisleGroups(open).map(g => `<h3 class="aisleHead" data-aisle="${g.aisle}">${esc(t(AISLE_NAME[g.aisle]))}</h3>${g.items.map(itemHtml).join('')}`).join('') : open.map(itemHtml).join(''))
+    const stuckNow = first && loadingStuck && !stale && !isLocal();
+    const rows = !stuckNow && open.length ? (aisleOn ? aisleGroups(open).flatMap(g => [`<h3 class="aisleHead" data-aisle="${g.aisle}">${esc(t(AISLE_NAME[g.aisle]))}</h3>`, ...g.items.map(itemHtml)]) : open.map(itemHtml)) : [];
+    setRows($('#items'), rows, stuckNow ? `<div class="stuck"><p class="muted">${esc(t('connLoadingList'))}</p><button type="button" class="btn sec" id="useLocal">${esc(t('connUseLocal'))}</button></div>`
+      : open.length ? ''
       : !isEmptyList(state.items) ? `<p class="muted" style="text-align:center">${t('allInBasket')}</p>`
       : first && !isLocal() ? '' // the first snapshot of a shared list is still on its way
-      : emptyHint();
+      : emptyHint());
     $('#doneCard').classList.toggle('hide', !done.length);
     $('#doneHead').textContent = t('inBasketHead', { n: done.length });
-    $('#doneItems').innerHTML = done.map(itemHtml).join('');
+    setRows($('#doneItems'), done.map(itemHtml));
   }
   renderDeposit(); renderCheckout();
   if (editingId) {
@@ -423,7 +442,7 @@ document.addEventListener('click', e => {
   if (e.target.closest('#useLocal')) { startLocal(); return; } // the saved list code stays, the next start tries it again
   if (Date.now() < noClickUntil) return; // the click that ends a long press must not open the section dialog or tick the item
   const chk = e.target.closest('[data-chk]');
-  if (chk) { const it = state.items[chk.dataset.chk]; if (it && !it.checked) remember(it.title, it.vgNum); if (it) bg.check(code, it.id, myKey(), !it.checked); return; }
+  if (chk) { toggleItem(chk.dataset.chk); return; }
   const sg = e.target.closest('[data-sug]');
   if (sg) { // a suggested product was tapped: it goes into the basket right away
     if (readOnly()) return;
@@ -467,8 +486,23 @@ document.addEventListener('click', e => {
   if (dadd) { depSaid = dadd.dataset.depAdd; bg.depositAdd(code, dadd.dataset.depAdd, myKey()); return; }
   if (dsub) { depSaid = dsub.dataset.depSub; bg.depositRemove(code, dsub.dataset.depSub, myKey()); return; }
   const del = e.target.closest('[data-del]');
-  if (del) { const it = state.items[del.dataset.del]; if (it) deleteItem(it); }
+  if (del) { const it = state.items[del.dataset.del]; if (it) deleteItem(it); return; }
+  // A tap anywhere else on a row (not on a field, button or link) does what its check box does; a scroll or drag is no tap
+  const row = e.target.closest('#items .item:not(.ord), #doneItems .item');
+  if (row && !e.target.closest('input, form, button, a, select, textarea') && isTap(tapDown, [e.clientX, e.clientY])) {
+    const c = row.querySelector('[data-chk]');
+    if (c) toggleItem(c.dataset.chk);
+  }
 });
+// Where the finger went down (for `isTap`): a click that ends a drag or scroll is no tap
+let tapDown = null;
+document.addEventListener('pointerdown', e => { tapDown = [e.clientX, e.clientY]; }, true);
+function toggleItem(id) {
+  const it = state.items[id];
+  if (!it) return;
+  if (!it.checked) remember(it.title, it.vgNum);
+  bg.check(code, it.id, myKey(), !it.checked);
+}
 // Empty a field and let its input handler catch up (suggestions, the add button, the camera of the scanner)
 function clearField(sel) { $(sel).value = ''; $(sel).dispatchEvent(new Event('input')); }
 const buzz = () => { if (navigator.vibrate) navigator.vibrate(60); }; // compat-ok: guarded, iOS has no vibration
