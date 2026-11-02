@@ -165,6 +165,28 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
   const tab = t => page.click(`.tabs [data-t=${t}]`);
   const menu = async () => { await page.click('#menuBtn'); await page.waitForTimeout(100); };
 
+  // A just checked item lingers in the open list: its row must keep EXACTLY its height (nothing under the finger may jump). The
+  // own check is a tap on the check box; a check by another person is simulated by writing the item's state into the demo
+  // database the way another tab would and sending the storage event the app listens to.
+  const rowHeight = text => page.evaluate(q => { const r = [...document.querySelectorAll('#items .item')].find(el => el.querySelector('.t').textContent.includes(q)); return r ? { h: r.getBoundingClientRect().height, done: r.classList.contains('done') } : null; }, text);
+  const remoteCheck = (text, by) => page.evaluate(([q, who]) => {
+    const key = Object.keys(localStorage).find(k => k.endsWith('kober-local-db')), db = JSON.parse(localStorage.getItem(key));
+    for (const list of Object.values(db)) for (const it of Object.values(list.items || {})) if (it.title.includes(q)) { it.checked = !!who; it.checkedBy = who; it.checkedAt = who ? Date.now() : null; }
+    localStorage.setItem(key, JSON.stringify(db)); window.dispatchEvent(new StorageEvent('storage', { key }));
+  }, [text, by]);
+  const keepsHeight = async (what, text, run, undo) => {
+    await page.waitForTimeout(700); // the last touch must be over, or a remote change would not be applied yet
+    const before = await rowHeight(text);
+    if (!before) { violations.push(`[${tag}] ${what}: row "${text}" not found`); return; }
+    await run(); await page.waitForTimeout(250);
+    const after = await rowHeight(text);
+    if (!after || !after.done) violations.push(`[${tag}] ${what}: the check was not applied to "${text}"`);
+    else if (Math.abs(after.h - before.h) > 0.5) violations.push(`[${tag}] ${what}: row "${text}" changed its height while lingering (${before.h} -> ${after.h})`);
+    await undo(); await page.waitForTimeout(600);
+  };
+  const longName = 'Donaudampf';
+  const ownCheck = text => () => page.click(`#items .item:has-text("${text}") [data-chk]`);
+
   await open();
   await check('list-empty');
   // the install gate in the iPhone browser: plain visit, then opened with a list link (shows the code and "copy code")
@@ -236,6 +258,8 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
   await expect('scan-keep: "Keep" leaves the listed item open', await openRows('Salz'), 1);
   await expect('scan-keep: product in the basket', await basketRows('Salz fein') > 0 ? 1 : 0, 1);
   if (await page.isVisible('#scanner')) violations.push(`[${tag}] scan: the scanner stayed open`);
+  await keepsHeight('linger-local', longName, ownCheck(longName), ownCheck(longName)); // a long name, no number
+  await keepsHeight('linger-local', 'Kurkuma', ownCheck('Kurkuma'), ownCheck('Kurkuma'));
   // share: the dialog of the local list, then name and emoji, then the QR code
   await page.click('#shareBtn'); await page.waitForTimeout(100); await check('share-dialog-local');
   await page.click('#shareStart');
@@ -246,6 +270,9 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
   // shared list: four tabs, a badge with the long name, ranking with three players
   await page.click('#items .item:has-text("Äpfel") [data-chk]'); await page.waitForTimeout(200);
   await check('list-shared');
+  // lingering rows on the shared list: checked by myself (my name shows nowhere), checked by another person (long names)
+  await keepsHeight('linger-shared-own', 'Kurkuma', ownCheck('Kurkuma'), ownCheck('Kurkuma'));
+  for (const who of ['Ben 🐼', 'Bartholomäus-Friedrich 🦖']) for (const text of [longName, 'Kurkuma']) await keepsHeight(`linger-shared-remote (${who})`, text, () => remoteCheck(text, who), () => remoteCheck(text, null));
   await tab('vDeposit'); await page.click('[data-dep-add="1"]'); await check('empties-shared');
   await menu(); await check('menu-shared'); await page.keyboard.press('Escape'); await page.click('header h1').catch(() => {});
   await menu(); await page.click('#menuReset'); await page.check('#resetScores'); await page.check('#resetOpen'); await page.waitForTimeout(100);

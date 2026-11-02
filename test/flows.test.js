@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, shouldShowAndroidInstall, isAndroid, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, findNameMatch, isTap, reuseRows, nextLinger, GRACE_MS, TICK_TTL, TICK_MAX } from '../public/flows.js';
+import { isIosLike, isStandalone, shouldShowBrowserHint, shouldShowInstallHint, shouldShowAndroidInstall, isAndroid, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, findNameMatch, isTap, reuseRows, nextLinger, checkerEmoji, GRACE_MS, TICK_TTL, TICK_MAX } from '../public/flows.js';
 import { createStore, localAdapter, userKey } from '../public/store.js';
 import { createSim, createClock } from '../public/sim.js';
 import { STRINGS } from '../public/i18n.js';
@@ -342,4 +342,13 @@ test('findNameMatch skips placeholders and can be graded', () => {
   const items = { a: { id: 'a', title: 'Kurkuma' } };
   assert.ok(findNameMatch(items, 'Kurkuma', 'same')); // identical after folding: the closest relation
   assert.equal(findNameMatch(items, 'Kurkuma gemahlen', 'same'), null);
+});
+
+test('checkerEmoji: the emoji of a player key, empty when there is none', () => {
+  assert.equal(checkerEmoji('🐼 Ben'), '🐼');
+  assert.equal(checkerEmoji('🦖 Bartholomäus-Friedrich'), '🦖');
+  assert.equal(checkerEmoji('Ben'), '');
+  assert.equal(checkerEmoji(' Ben'), '');
+  assert.equal(checkerEmoji(null), '');
+  assert.equal(checkerEmoji('<script>x</script> y'), '');
 });

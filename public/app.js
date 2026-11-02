@@ -9,7 +9,7 @@ import { loadVg, similarNames } from './vg.js';
 import { toast, hideToast, ask, asking, dismissKeyboard, loadScript, copyText } from './ui.js';
 import { createCamera, productName } from './scan.js';
 import { t, applyStatic } from './i18n.js';
-import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, findNameMatch, isTap, reuseRows, nextLinger, GRACE_MS } from './flows.js';
+import { shouldShowAndroidInstall, shouldShowInstallHint, shouldShowBrowserHint, sanitizeHintSeen, addHintSeen, tooLongNumber, resetPlan, packTicks, sanitizeTicks, pruneTicks, sanitizeHistory, recordHistory, historyMatches, HISTORY_KEY, createVgLoader, uploadLocalList, checkoutSections, rankPlaces, computeBadges, classifyScan, findNameMatch, isTap, reuseRows, nextLinger, checkerEmoji, GRACE_MS } from './flows.js';
 import { planMove, planDrop, sortOpen } from './order.js';
 import { ORDER, OTHER, aisleOf, groupByAisle, sanitizeOverrides, withChoice, guessAisle } from './aisles.js';
 import { initDialogs, shortName, menuIndex, visibleFocusables } from './a11y.js';
@@ -185,21 +185,25 @@ const putInSection = (title, aisle) => {
 let linger = new Map(), lingerPrev = null, lingerCode = null, lingerTimer = 0;
 const rowHtml = i => itemHtml(i, linger.has(i.id));
 function itemHtml(i, lingering = false) {
-  const by = !isLocal() && i.checked && i.checkedBy
-    ? `<span class="badge">${esc(lingering && i.checkedBy !== myKey() ? t('lingerBy', { name: i.checkedBy }) : i.checkedBy)}</span>` : '';
+  // A lingering row keeps the exact height of the open row (nothing under the finger may jump): no name badge, the quick number
+  // form stays in place but invisible, and another person's check shows as their emoji in the check box instead of the tick
+  const by = !lingering && !isLocal() && i.checked && i.checkedBy ? `<span class="badge">${esc(i.checkedBy)}</span>` : '';
+  const who = lingering && !isLocal() && i.checkedBy !== myKey() ? checkerEmoji(i.checkedBy) : '';
   const id = esc(i.id);
   // Number: open items without one get the quick field (entering it puts the item in the basket); every other item
   // shows a small button to change or add the number
   const editing = editingId === i.id;
-  const chip = i.vgNum ? esc(i.vgNum) : i.checked ? `＋ ${t('noShort')}` : '';
+  const chip = i.vgNum ? esc(i.vgNum) : i.checked && !lingering ? `＋ ${t('noShort')}` : '';
   const nm = esc(shortName(i.title)); // item name for the button labels (escaped: it goes into an attribute)
   const sub = chip && !editing ? `<button type="button" class="numedit" data-editnum="${id}" aria-label="${t('ariaEditNumItem', { name: nm })}">${chip}</button>` : '';
   // iPhones have no Return key on the number pad: every number field has a confirm button, plus a scan button
   const buttons = checkToo => `<button class="rowbtn ok" type="submit" aria-label="${t('ariaConfirmItem', { name: nm })}">✓</button><button class="rowbtn" type="button" data-scanrow="${id}" data-checktoo="${checkToo}" aria-label="${t('ariaScanItem', { name: nm })}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M16 7v10"/></svg></button>`;
   const vgIn = editing ? `<form data-vgedit="${id}"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" value="${esc(i.vgNum || '')}" placeholder="${t('noShort')}" aria-label="${t('ariaNumItem', { name: nm })}">${buttons(0)}</form>`
+    : lingering && !i.vgNum ? `<form class="quick" aria-hidden="true"><input class="vg" tabindex="-1" placeholder="${t('noShort')}">${buttons(1).replace(/<button /g, '<button tabindex="-1" ')}</form>` // invisible placeholder of the quick form: same height as before the check
     : i.vgNum || i.checked ? '' : `<form data-vg="${id}" class="quick"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${t('noShort')}" aria-label="${t('ariaNumItem', { name: nm })}">${buttons(1)}</form>`;
   const ord = reorder && !i.checked; // reorder mode: the handle takes the place of the check box, nothing else moves
   const lead = ord ? `<button type="button" class="ordh" data-ordh="${id}" aria-label="${t('ariaDragItem', { name: nm })}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg></button>`
+    : who ? `<button class="chk by" data-chk="${id}" title="${esc(t('lingerBy', { name: i.checkedBy }))}" aria-label="${t('ariaBackItem', { name: nm })}, ${esc(t('lingerBy', { name: i.checkedBy }))}">${esc(who)}</button>`
     : `<button class="chk" data-chk="${id}" aria-label="${t(i.checked ? 'ariaBackItem' : 'ariaCheckItem', { name: nm })}"></button>`;
   return `<div class="item${i.checked ? ' done' : ''}${ord ? ' ord' : ''}">
       ${lead}

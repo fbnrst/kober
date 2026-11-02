@@ -253,6 +253,12 @@ export function reuseRows(oldRows, newRows) {
 // clock differences between phones do not matter). `prevItems` is what was shown before (null = nothing known yet: items
 // already checked when the list loads do not linger). Returns the new map; ids still in it are the lingering ones.
 export const GRACE_MS = 4000;
+// The emoji of a player key ("<emoji> <name>"); '' when the key has none. Shown in the check box of a row another person just checked.
+export function checkerEmoji(key) {
+  const i = typeof key === 'string' ? key.indexOf(' ') : -1;
+  return i > 0 && i <= 8 ? key.slice(0, i) : '';
+}
+
 export function nextLinger(since, prevItems, items, now, grace = GRACE_MS) {
   const out = new Map();
   for (const i of Object.values(items || {})) {
