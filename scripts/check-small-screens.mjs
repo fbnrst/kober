@@ -212,26 +212,30 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
   if (joinOpen) await page.click('#joinClose');
   await page.click('#scanBtn'); await page.waitForTimeout(500); await check('scanner');
   await page.fill('#eanIn', '790'); await page.waitForTimeout(200); await check('scanner-manual');
-  // a scanned product with a name close to an open item without a number: it goes into the basket, then the app asks to strike
-  // the listed item ("Äpfel Elstar" is on the list; the demo product 4480 has the same name); yes deletes it, Undo brings it back
-  await page.fill('#eanIn', '4480'); await page.press('#eanIn', 'Enter');
-  await page.waitForSelector('#askDlg:not(.hide)'); await check('scan-strike-ask');
-  await page.click('#askYes'); await page.waitForSelector('#toast.act.show');
-  // a just checked item lingers in #items for a few seconds before it moves to #doneItems
-  const openRows = () => page.locator('#items .item:not(.done)', { hasText: 'Äpfel Elstar' }).count();
-  if ((await openRows()) !== 0) violations.push(`[${tag}] scan-strike: "Strike" did not remove the listed item`);
-  if (!(await page.locator('#items .item.done, #doneItems .item', { hasText: 'Äpfel Elstar' }).count())) violations.push(`[${tag}] scan-strike: the scanned product is not in the basket`);
+  await page.click('#scanClose'); await page.waitForTimeout(150);
+  // a scanned product goes into the basket; an open item without a number that has the same name is struck without a question
+  // (Undo follows), one that the product only extends ("Kurkuma" -> "Kurkuma gemahlen") is asked about first
+  const scan = async v => { await page.click('#scanBtn'); await page.waitForTimeout(300); await page.fill('#eanIn', v); await page.press('#eanIn', 'Enter'); };
+  const openRows = text => page.locator('#items .item:not(.done)', { hasText: text }).count();
+  const basketRows = text => page.locator('#items .item.done, #doneItems .item', { hasText: text }).count(); // a just checked item lingers in #items first
+  const expect = async (what, got, want) => { if (got !== want) violations.push(`[${tag}] ${what}: expected ${want}, got ${got}`); };
+  await scan('4480'); await page.waitForSelector('#toast.act.show'); // "Äpfel Elstar" is listed, the demo product 4480 has the same name
+  await expect('scan-same: listed item struck', await openRows('Äpfel Elstar'), 0);
+  await expect('scan-same: product in the basket', await basketRows('Äpfel Elstar') > 0 ? 1 : 0, 1);
+  if (await page.isVisible('#askDlg:not(.hide)')) violations.push(`[${tag}] scan-same: the app asked although the names are the same`);
   await page.click('#toast .toastAct'); await page.waitForTimeout(300);
-  if ((await openRows()) !== 1) violations.push(`[${tag}] scan-strike: Undo did not bring the listed item back`);
-  if (await page.isVisible('#scanner')) violations.push(`[${tag}] scan-strike: the scanner stayed open`);
-  // the other answer: "Vollkornbrot" is on the list without a number, the demo product 7100 has the same name; Keep leaves it open
-  await page.click('#scanBtn'); await page.waitForTimeout(300);
-  await page.fill('#eanIn', '7100'); await page.press('#eanIn', 'Enter');
-  await page.waitForSelector('#askDlg:not(.hide)'); await page.click('#askNo'); await page.waitForTimeout(300);
-  const breadOpen = () => page.locator('#items .item:not(.done)', { hasText: 'Vollkornbrot' }).count();
-  if ((await breadOpen()) !== 1) violations.push(`[${tag}] scan-keep: "Keep" did not leave the listed item open`);
-  if (!(await page.locator('#items .item.done, #doneItems .item', { hasText: 'Vollkornbrot' }).count())) violations.push(`[${tag}] scan-keep: the scanned product is not in the basket`);
-  if (await page.isVisible('#scanner')) violations.push(`[${tag}] scan-keep: the scanner stayed open`);
+  await expect('scan-same: Undo brings the item back', await openRows('Äpfel Elstar'), 1);
+  await add('Kurkuma'); await blur();
+  await scan('7111'); await page.waitForSelector('#askDlg:not(.hide)'); await check('scan-strike-ask');
+  await page.click('#askYes'); await page.waitForSelector('#toast.act.show');
+  await expect('scan-strike: "Strike" removes the listed item', await openRows('Kurkuma'), 0);
+  await page.click('#toast .toastAct'); await page.waitForTimeout(300);
+  await expect('scan-strike: Undo brings it back', await openRows('Kurkuma'), 1);
+  await add('Salz'); await blur();
+  await scan('7110'); await page.waitForSelector('#askDlg:not(.hide)'); await page.click('#askNo'); await page.waitForTimeout(300);
+  await expect('scan-keep: "Keep" leaves the listed item open', await openRows('Salz'), 1);
+  await expect('scan-keep: product in the basket', await basketRows('Salz fein') > 0 ? 1 : 0, 1);
+  if (await page.isVisible('#scanner')) violations.push(`[${tag}] scan: the scanner stayed open`);
   // share: the dialog of the local list, then name and emoji, then the QR code
   await page.click('#shareBtn'); await page.waitForTimeout(100); await check('share-dialog-local');
   await page.click('#shareStart');

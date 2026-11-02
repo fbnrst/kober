@@ -223,5 +223,23 @@
 "countryID": 1,
 "title": "Brezel",
 "isRegional": 0
+},
+{
+"id": 26,
+"vgNum": 7110,
+"unitID": 3,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Salz fein",
+"isRegional": 0
+},
+{
+"id": 27,
+"vgNum": 7111,
+"unitID": 3,
+"manufacturerID": 1,
+"countryID": 1,
+"title": "Kurkuma gemahlen",
+"isRegional": 0
 }
 ]

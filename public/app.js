@@ -859,9 +859,12 @@ async function scanForRow(c, p, target) {
   } else { toast(t('scanUnknown')); return; }
   buzz();
 }
-// After a scan added a NEW item: an open item that was typed as a plain name and is replaced by the product ("Apfel" -> "Apfel Gala")
-// is offered for removal (nothing automatic). Returns the item to remove, or null (none, kept, closed dialog, scanner closed meanwhile).
+// After a scan added a NEW item: an open item that was typed as the same name ("Vollkornbrot" -> product "Vollkornbrot") is removed
+// without asking (the Undo toast of deleteItem follows); one that the product only extends ("Apfel" -> "Apfel Gala") is offered for
+// removal. Returns the item to remove, or null (none, kept, closed dialog, scanner closed meanwhile). The oldest match wins.
 async function askStrike(title) {
+  const same = findNameMatch(state.items, title, 'same');
+  if (same) return same;
   const m = findNameMatch(state.items, title);
   if (!m) return null;
   const session = scanSession;
