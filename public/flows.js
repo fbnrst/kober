@@ -1,6 +1,6 @@
 // Pure logic behind a few flows of app.js (no DOM, no storage access), so Node tests can cover it.
 import { parseListCode, isListCode } from './store.js';
-import { vgNumFromCode, similarNames, isPlaceholder } from './vg.js';
+import { vgNumFromCode, nameRelation, isPlaceholder } from './vg.js';
 
 /* ---------- Input bar ---------- */
 // VG numbers have 3 to 4 digits: a longer run of digits can never be a VG number (the "+" stays muted and the
@@ -265,11 +265,13 @@ export function nextLinger(since, prevItems, items, now, grace = GRACE_MS) {
   return out;
 }
 
-// An open item without a VG number or barcode whose name is similar to a scanned product's title: the item the person probably
-// meant when typing the name earlier (oldest first). Placeholder titles never match. Pure: the caller asks before using it.
-export function findNameMatch(items, title) {
+// An open item without a VG number or barcode that the scanned product replaces: all words of the item's name are in the product's
+// title (`nameRelation` in vg.js, directed: "Kurkuma" is replaced by "Kurkuma gemahlen", not the other way round). Oldest first.
+// Placeholder titles never match. Pure: the caller asks before removing it. `minimum` 'same' would only accept identical names.
+export function findNameMatch(items, title, minimum = 'covers') {
   if (!title || isPlaceholder(title)) return null;
-  const hits = Object.values(items || {}).filter(i => i && !i.checked && !i.vgNum && !i.ean && i.title && !isPlaceholder(i.title) && similarNames(title, i.title));
+  const ok = r => r === 'same' || (r === 'covers' && minimum === 'covers');
+  const hits = Object.values(items || {}).filter(i => i && !i.checked && !i.vgNum && !i.ean && i.title && !isPlaceholder(i.title) && ok(nameRelation(i.title, title)));
   hits.sort((a, b) => (Number(a.addedAt) || 0) - (Number(b.addedAt) || 0));
   return hits[0] || null;
 }

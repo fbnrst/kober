@@ -304,7 +304,7 @@ test('nextLinger: no linger for items checked at load, for unchecked or removed 
   assert.equal(nextLinger(l, checked, {}, 6).size, 0); // deleted
 });
 
-test('findNameMatch finds the oldest open item without a number that names the scanned product', () => {
+test('findNameMatch: the scan replaces a plainer listed name, oldest first', () => {
   const items = {
     a: { id: 'a', title: 'Kurkuma', addedAt: 20 },
     b: { id: 'b', title: 'Kurkuma', addedAt: 10 },
@@ -312,15 +312,34 @@ test('findNameMatch finds the oldest open item without a number that names the s
     d: { id: 'd', title: 'Kurkuma', checked: true, addedAt: 2 },
     e: { id: 'e', title: 'Kurkuma', ean: '4012345678901', addedAt: 3 },
   };
-  assert.equal(findNameMatch(items, 'Bio Kurkuma gemahlen').id, 'b');
+  assert.equal(findNameMatch(items, 'Kurkuma gemahlen').id, 'b');
+  assert.equal(findNameMatch(items, 'Bio Kurkuma').id, 'b');
   assert.equal(findNameMatch({ c: items.c, d: items.d, e: items.e }, 'Kurkuma'), null);
+  const ask = (listed, scanned) => !!findNameMatch({ x: { id: 'x', title: listed } }, scanned);
+  assert.ok(ask('Apfel', 'Apfel Gala'));
+  assert.ok(ask('Apfel', 'Apfel-Gala'));
+  assert.ok(ask('Tomate', 'Tomaten rot'));
+  assert.ok(ask('Gala Apfel', 'Apfel Gala bio'));
 });
 
-test('findNameMatch keeps different products apart and skips placeholders', () => {
-  assert.equal(findNameMatch({ a: { id: 'a', title: 'Apfel' } }, 'Apfelsaft'), null);
-  assert.equal(findNameMatch({ a: { id: 'a', title: 'Apfelsaft' } }, 'Apfel'), null);
+test('findNameMatch is directed and strict', () => {
+  const ask = (listed, scanned) => !!findNameMatch({ x: { id: 'x', title: listed } }, scanned);
+  assert.ok(!ask('Tomatenmark', 'Tomaten'));
+  assert.ok(!ask('Tomaten', 'Tomatenmark'));
+  assert.ok(!ask('Apfel', 'Apfelsaft'));
+  assert.ok(!ask('Apfelsaft', 'Apfel'));
+  assert.ok(!ask('Kurkuma gemahlen', 'Kurkuma')); // the listed name is the more specific one
+  assert.ok(!ask('Brot', 'Roggenbrot')); // no prefix or compound matching
+  assert.ok(!ask('Apfel', 'Orange'));
+  assert.ok(!ask('Bio', 'Bio Apfel')); // only generic words: nothing to compare
+});
+
+test('findNameMatch skips placeholders and can be graded', () => {
   assert.equal(findNameMatch({ a: { id: 'a', title: 'Kurkuma' } }, 'unbesetzt 1234'), null);
   assert.equal(findNameMatch({ a: { id: 'a', title: 'unbesetzt 1234' } }, 'unbesetzt 1234'), null);
   assert.equal(findNameMatch({}, 'Kurkuma'), null);
   assert.equal(findNameMatch(null, ''), null);
+  const items = { a: { id: 'a', title: 'Kurkuma' } };
+  assert.ok(findNameMatch(items, 'Kurkuma', 'same')); // identical after folding: the closest relation
+  assert.equal(findNameMatch(items, 'Kurkuma gemahlen', 'same'), null);
 });

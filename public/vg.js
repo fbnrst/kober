@@ -198,3 +198,16 @@ export const SIMILAR_ENOUGH = 0.75;
 // Usable beats perfect: the app should only ask when it is quite sure the number is wrong, so a few wrong accepts are fine
 // (Tomaten ~ Tomatenmark lands exactly on the threshold and passes)
 export const similarNames = (a, b) => nameSimilarity(a, b) >= SIMILAR_ENOUGH;
+
+// Directed relation for "the scan replaces what the shopper typed": every word of the LISTED (plainer) title must be a word of the
+// SCANNED title, equal or a listed synonym (Tomate ~ Tomaten); no prefix or similarity matching, so Apfel vs Apfelsaft and
+// Tomatenmark vs Tomaten are unrelated. Returns 'same' (the same words), 'covers' (the scan adds words: Kurkuma -> Kurkuma gemahlen)
+// or null. Generic words (Bio, colours) are ignored and so are words under three letters.
+const relWords = s => normName(s).split(/[^a-z0-9]+/).filter(w => w.length >= 3 && !GENERIC.has(w) && !/^\d+$/.test(w));
+export function nameRelation(listed, scanned) {
+  const l = relWords(listed), sc = relWords(scanned);
+  if (!l.length || !sc.length) return null;
+  const has = (list, w) => list.some(x => x === w || synonyms(x, w));
+  if (!l.every(w => has(sc, w))) return null;
+  return sc.every(w => has(l, w)) ? 'same' : 'covers';
+}
