@@ -488,12 +488,11 @@ document.addEventListener('click', e => {
     return;
   }
   const sh = e.target.closest('[data-sughist]');
-  if (sh) { // an own past item was tapped: added like a typed name; its remembered VG number only goes along when it still names a similar product
+  if (sh) { // an own past item was tapped: added like a typed name, always without a VG number
     if (readOnly()) return;
-    const title = sh.dataset.sughist, v = +sh.dataset.sugnum || 0, p = v && vg ? vg.lookup(v) : null;
-    const num = p && !p.placeholder && similarNames(p.title, title) ? { vgNum: p.vgNum } : {};
-    remember(title, num.vgNum);
-    bg.add(code, { id: uid(), title, ...num }, myKey());
+    const title = sh.dataset.sughist;
+    remember(title, null);
+    bg.add(code, { id: uid(), title }, myKey());
     clearField('#addIn');
     return;
   }
@@ -691,7 +690,7 @@ $('#addIn').oninput = () => {
   const long = tooLongNumber(q); // more than 4 digits can never be a VG number: say so here instead of after the tap
   const miss = vg && isNum && !long && q.length >= 4 && !nums.length && !vg.lookup(q); // an exact placeholder number is accepted silently
   box.classList.toggle('hide', !nums.length && !hist.length && !names.length && !miss && !long);
-  box.innerHTML = hist.map(h => `<button type="button" class="sug hist" data-sughist="${esc(h.t)}" data-sugnum="${esc(h.v || '')}"><span>${esc(h.t)}</span><i aria-hidden="true">↺</i></button>`).join('')
+  box.innerHTML = hist.map(h => `<button type="button" class="sug hist" data-sughist="${esc(h.t)}"><span>${esc(h.t)}</span><i aria-hidden="true">↺</i></button>`).join('')
     + nums.map(p => `<button type="button" class="sug" data-sug="${esc(p.vgNum)}"><b>${esc(p.vgNum)}</b><span>${esc(p.title)}</span></button>`).join('')
     + names.map(p => `<button type="button" class="sug" data-sugname="${esc(p.title)}"><span>${esc(p.title)}</span></button>`).join('')
     + (miss ? `<span class="miss">${esc(t('noVgMatch'))}</span>` : '')

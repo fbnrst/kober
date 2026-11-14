@@ -5,15 +5,15 @@ import { guessAisle, aisleOf, aisleKey, groupByAisle, sanitizeOverrides, withCho
 
 test('everyday items land in the aisle a shopper expects', () => {
   const expect = {
-    produce: ['Äpfel', 'Rote Bete', 'Chicorée', 'Weißkohl', 'Zuckerschoten', 'Gurke', 'Mais'],
+    produce: ['Äpfel', 'Rote Bete', 'Chicorée', 'Weißkohl', 'Zuckerschoten', 'Gurke', 'Zuckermais'],
     dairy: ['Eier', 'Eier Freiland', 'Ei', 'Rührei', 'Hafer Barista', 'Haferdrink', 'H-Milch', 'Mandelmilch'],
     chilled: ['Tofu', 'Milch', 'Frischkäse', 'Butter', 'Nachtisch', 'Joghurt', 'Hackfleisch', 'Räucherlachs', 'Bratwurst', 'Hühnerbrust'],
     bakery: ['Brötchen', 'Vollkornbrot', 'Käsekuchen', 'Laugenbrezel'],
     frozen: ['Tiefkühlpizza', 'Pommes', 'Eis', 'Beeren TK'],
-    spreads: ['Bionella', 'Zwergenwiese', 'Erdnussmuß', 'Honig', 'Marmelade'],
+    spreads: ['Bionella', 'Zwergenwiese', 'Erdnussmuß', 'Honig', 'Marmelade', 'Harissa'],
     cereal: ['Müsli', 'Haferflocken', 'Cornflakes', 'Granola'],
     baking: ['Mehl', 'Zucker', 'Dattelsüße', 'Backpulver', 'Puddingpulver'],
-    pasta: ['Nudeln', 'Tomaten Dose', 'Gurken Glas', 'Gemüsebrühe', 'Apfelmus', 'Gemüsesuppe', 'Sonnenblumenöl', 'Balsamico', 'Olivenöl', 'Zwergensauce', 'Hot Sauce'],
+    pasta: ['Nudeln', 'Tomaten Dose', 'Gurken Glas', 'Gemüsebrühe', 'Apfelmus', 'Gemüsesuppe', 'Sonnenblumenöl', 'Balsamico', 'Olivenöl', 'Zwergensauce', 'Hot Sauce', 'Kichererbsen', 'Bohnen', 'Weiße Bohnen', 'Kidneybohnen', 'Mais'],
     spices: ['Paprikapulver', 'Kurkuma', 'Salz', 'Zimt'],
     coffee: ['Kaffee', 'Kaffeebohnen', 'Kräutertee'],
     snacks: ['Paranusskerne', 'Datteln', 'Mandeln', 'Schokolade', 'Rosinen'],
