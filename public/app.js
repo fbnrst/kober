@@ -56,13 +56,13 @@ const splitKey = k => { const i = k.indexOf(' '); return { emoji: k.slice(0, i),
 // shows a success that did not happen nor throws away what was typed
 const readOnly = () => { if (!stale) return false; toast(t('connCached')); return true; };
 // Delete without asking; the toast offers to bring the item back with all its data (same id, number, state)
-function deleteItem(it) {
+function deleteItem(it, scanned = null) { // `scanned`: the title that went into the basket and replaces this item
   if (readOnly()) return;
   endInteraction();
   const prev = { ...it }, c = code;
   bg.remove(c, it.id);
   const name = shortName(it.title);
-  toast(t('toastDeleted', { item: name }), { label: t('undo'), aria: t('ariaUndo', { item: name }), run: () => { if (c === code) bg.restore(c, prev, myKey()); } });
+  toast(scanned ? t('toastStruck', { item: shortName(scanned), listed: name }) : t('toastDeleted', { item: name }), { label: t('undo'), aria: t('ariaUndo', { item: name }), run: () => { if (c === code) bg.restore(c, prev, myKey()); } });
 }
 
 /* ---------- Connection ---------- */
@@ -921,7 +921,7 @@ async function handleCode(raw) {
     buzz();
     const gone = r?.added && strike ? await askStrike(strike) : null; // the scanner stays open under the question
     closeScanner();
-    if (gone) deleteItem(gone);
+    if (gone) deleteItem(gone, r.title);
   } finally { scanBusy = false; }
 }
 // The camera of the scanner dialog (scan.js); every code it reads goes to handleCode
