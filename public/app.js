@@ -867,13 +867,11 @@ async function scanForRow(c, p, target) {
   } else { toast(t('scanUnknown')); return; }
   buzz();
 }
-// After a scan added a NEW item: an open item that was typed as the same name ("Vollkornbrot" -> product "Vollkornbrot") is removed
-// without asking (the Undo toast of deleteItem follows); one that the product only extends ("Apfel" -> "Apfel Gala") is offered for
-// removal. Returns the item to remove, or null (none, kept, closed dialog, scanner closed meanwhile). The oldest match wins.
+// After a scan added a NEW item: an open item with the same name ("Vollkornbrot" -> product "Vollkornbrot") or one that the product only
+// extends ("Apfel" -> "Apfel Gala") is offered for removal; an identical name is preferred over a related one, then the oldest wins.
+// Returns the item to remove, or null (none, kept, closed dialog, scanner closed meanwhile).
 async function askStrike(title) {
-  const same = findNameMatch(state.items, title, 'same');
-  if (same) return same;
-  const m = findNameMatch(state.items, title);
+  const m = findNameMatch(state.items, title, 'same') || findNameMatch(state.items, title);
   if (!m) return null;
   const session = scanSession;
   const yes = await ask(t('confirmStrike', { listed: m.title }), { yes: t('askStrike'), no: t('askKeep') });
