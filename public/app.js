@@ -510,7 +510,7 @@ document.addEventListener('click', e => {
     const k = kr.dataset.checkout, refocus = focusedKey();
     clearTimeout(tickStay.get(k)); tickStay.delete(k);
     if (checkoutDone.has(k)) checkoutDone.delete(k); // un-ticking brings the row back at once
-    else { checkoutDone.add(k); tickStay.set(k, setTimeout(() => { tickStay.delete(k); renderCheckout(); }, GRACE_MS)); }
+    else { checkoutDone.add(k); tickStay.set(k, setTimeout(() => { tickStay.delete(k); const refocus = focusedKey(); renderCheckout(); if (refocus) document.querySelector(refocus)?.focus({ preventScroll: true }); }, GRACE_MS)); }
     saveTicks(); renderCheckout();
     if (refocus) document.querySelector(refocus)?.focus({ preventScroll: true }); // the row moved: keyboard focus goes with it
     return;
