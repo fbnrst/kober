@@ -22,12 +22,12 @@ const WORDS = {
   spices: 'salz,pfeffer,zimt,curry,kurkuma,muskat,gewuerz,pulver,lorbeer,nelke,wacholder,hefeflocken',
   coffee: 'tee,kaffee,kaffeebohnen,espresso,kakao',
   snacks: 'nuss,nuesse,mandel,cashew,erdnuss,sonnenblumenkerne,kuerbiskerne,leinsamen,chiasamen,sesam,pinienkern,pistazie,studentenfutter,rosinen,datteln,trockenfruechte,trockenobst,cranberr,schokolade,gummibaer,chips,salzstangen,riegel,popcorn,bonbon,lakritz,marzipan,nougat,cracker,reiswaffel,keks',
-  drinks: 'wasser,sprudel,saft,schorle,limonade,cola,bier,wein,sekt,getraenk,pfand,limo,prosecco,spirituose,wodka,gin,whisky,radler,drink,eistee',
+  drinks: 'wasser,sprudel,saft,schorle,limonade,cola,bier,wein,sekt,getraenk,pfand,limo,prosecco,spirituose,wodka,gin,whisky,radler,drink,eistee,mate',
   frozen: 'tk,tiefkuehl,pizza,pommes,kroketten,eis,eiswuerfel,beerenmix,blattspinat,eiscreme',
   household: 'zahnpasta,zahnbuerste,zahnseide,seife,duschgel,dusch,shampoo,deo,handcreme,toilettenpapier,klopapier,kuechenrolle,taschentuecher,spuelmittel,spuelbuerste,waschmittel,weichspueler,putzmittel,reiniger,muellbeutel,gefrierbeutel,backpapier,alufolie,frischhaltefolie,serviette,kerze,streichhoelzer,batterie,gluehbirne,windel,feuchttuecher,tampon,binde,spuelmaschine,schwamm,tragetasche,blumen,katzenfutter,hundefutter,futter,leckerli,rasier,sonnencreme,geschirrtuch,schere,filter',
 };
 // Words that count only as a whole word (the short ones would hit inside other words) and cans that decide on their own
-const EXACT = new Set(['tk', 'ei', 'eier', 'eis', 'dose', 'glas', 'gin', 'deo', 'mais']);
+const EXACT = new Set(['tk', 'ei', 'eier', 'eis', 'dose', 'glas', 'gin', 'deo', 'mais', 'mate']);
 const PHRASES = [[' h milch', 'dairy'], ['rote bete', 'produce'], ['rote beete', 'produce'], ['hafer barista', 'dairy'], ['ruehrei', 'dairy'], ['spiegelei', 'dairy']];
 const CANNED = new Set(['dose', 'glas']);
 // Spellings that only differ by a diacritic: é in Chicorée, ñ and so on
