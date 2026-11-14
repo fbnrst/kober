@@ -236,16 +236,22 @@ async function runContext(browser, base, [w, h], lang, scheme, violations) {
   await page.click('#scanBtn'); await page.waitForTimeout(500); await check('scanner');
   await page.fill('#eanIn', '790'); await page.waitForTimeout(200); await check('scanner-manual');
   await page.click('#scanClose'); await page.waitForTimeout(150);
-  // a scanned product goes into the basket; an open item without a number that has the same name is struck without a question
-  // (Undo follows), one that the product only extends ("Kurkuma" -> "Kurkuma gemahlen") is asked about first
+  // a scanned product goes into the basket; an open item without a number that has the same name, or one that the product only
+  // extends ("Kurkuma" -> "Kurkuma gemahlen"), is asked about first: "Keep" leaves it open, "Strike" removes it (Undo follows)
   const scan = async v => { await page.click('#scanBtn'); await page.waitForTimeout(300); await page.fill('#eanIn', v); await page.press('#eanIn', 'Enter'); };
   const openRows = text => page.locator('#items .item:not(.done)', { hasText: text }).count();
   const basketRows = text => page.locator('#items .item.done, #doneItems .item', { hasText: text }).count(); // a just checked item lingers in #items first
   const expect = async (what, got, want) => { if (got !== want) violations.push(`[${tag}] ${what}: expected ${want}, got ${got}`); };
-  await scan('4480'); await page.waitForSelector('#toast.act.show'); // "Äpfel Elstar" is listed, the demo product 4480 has the same name
-  await expect('scan-same: listed item struck', await openRows('Äpfel Elstar'), 0);
+  await scan('4480'); await page.waitForSelector('#askDlg:not(.hide)'); await check('scan-same-ask'); // "Äpfel Elstar" is listed, the demo product 4480 has the same name
+  await page.click('#askNo'); await page.waitForTimeout(300);
+  await expect('scan-same-keep: "Keep" leaves the listed item open', await openRows('Äpfel Elstar'), 1);
+  await expect('scan-same-keep: product in the basket', await basketRows('Äpfel Elstar') > 0 ? 1 : 0, 1);
+  await page.waitForTimeout(4200); // the product stops lingering and moves to the basket block
+  await page.locator('#doneItems .item', { hasText: 'Äpfel Elstar' }).locator('[data-del]').first().click(); await page.waitForTimeout(300); // so the same code is a new item again
+  await scan('4480'); await page.waitForSelector('#askDlg:not(.hide)');
+  await page.click('#askYes'); await page.waitForSelector('#toast.act.show');
+  await expect('scan-same: "Strike" removes the listed item', await openRows('Äpfel Elstar'), 0);
   await expect('scan-same: product in the basket', await basketRows('Äpfel Elstar') > 0 ? 1 : 0, 1);
-  if (await page.isVisible('#askDlg:not(.hide)')) violations.push(`[${tag}] scan-same: the app asked although the names are the same`);
   await page.click('#toast .toastAct'); await page.waitForTimeout(300);
   await expect('scan-same: Undo brings the item back', await openRows('Äpfel Elstar'), 1);
   await add('Kurkuma'); await blur();
