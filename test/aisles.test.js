@@ -17,7 +17,7 @@ test('everyday items land in the aisle a shopper expects', () => {
     spices: ['Paprikapulver', 'Kurkuma', 'Salz', 'Zimt'],
     coffee: ['Kaffee', 'Kaffeebohnen', 'Kräutertee'],
     snacks: ['Paranusskerne', 'Datteln', 'Mandeln', 'Schokolade', 'Rosinen'],
-    drinks: ['Apfelsaft', 'Mineralwasser', 'Bier', 'Eistee', 'Wein'],
+    drinks: ['Apfelsaft', 'Mineralwasser', 'Bier', 'Eistee', 'Wein', 'Mate', 'Club-Mate'],
     household: ['Spülmittel', 'Toilettenpapier', 'Kaffeefilter', 'Blumen', 'Zahnpasta'],
   };
   for (const [aisle, names] of Object.entries(expect)) for (const n of names) assert.equal(guessAisle(n), aisle, `${n} should be ${aisle}`);
