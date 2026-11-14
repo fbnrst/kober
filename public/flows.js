@@ -43,18 +43,21 @@ export const pruneTicks = (keys, live) => [...keys].filter(k => live.has(k));
 // already typed in at the till leave their block and go into one block at the end. `deposits`: [{id, name, vgNum, n}] with
 // n > 0, `ticks`: the set of ticked row keys. Weighed goods (g, kg, Liter) and single pieces show the amount beside the
 // unit, counted pieces as "3 ×" before the number.
-export function checkoutSections(items, deposits, ticks) {
+// `lingering`: keys ticked just now; they stay in their block (shown as ticked) until the caller drops them, like a freshly checked
+// item on the list, so a row never vanishes under the finger.
+export function checkoutSections(items, deposits, ticks, lingering = new Set()) {
   const byTitle = (a, b) => a.title.localeCompare(b.title, 'de');
   const row = (key, title, amount, unit, no) => {
     const weight = ['g', 'kg', 'Liter'].includes(unit) || amount === 1;
-    return { key, title, amount, unit: unit || '', no: no || null, weight, done: ticks.has(key) };
+    const done = ticks.has(key);
+    return { key, title, amount, unit: unit || '', no: no || null, weight, done, stay: done && lingering.has(key) };
   };
   const inBasket = items.filter(i => i.checked).sort(byTitle);
   const item = i => row(i.id, i.title, i.amount, i.unit, i.vgNum);
   const big = inBasket.filter(i => i.vgNum >= 1000).map(item), bakery = inBasket.filter(i => i.vgNum && i.vgNum < 1000).map(item);
   const empties = deposits.map(d => row('d' + d.id, d.name, d.n, '', d.vgNum));
-  const open = rows => rows.filter(r => !r.done);
-  return { items: open(big), bakery: open(bakery), empties: open(empties), done: [...big, ...bakery, ...empties].filter(r => r.done) };
+  const open = rows => rows.filter(r => !r.done || r.stay);
+  return { items: open(big), bakery: open(bakery), empties: open(empties), done: [...big, ...bakery, ...empties].filter(r => r.done && !r.stay) };
 }
 
 /* ---------- Ranking ---------- */

@@ -311,6 +311,7 @@ function render() {
 
 /* ---------- Checkout ---------- */
 const checkoutDone = new Set(); // rows ticked at the checkout (typed in at the till): local to this phone, kept per list for 24 h
+const tickStay = new Map(); // key -> timer: rows ticked just now stay in their block for GRACE_MS, shown as ticked
 const loadTicks = () => { checkoutDone.clear(); for (const k of sanitizeTicks(LS.get('checkoutTicks', null), code, Date.now())) checkoutDone.add(k); };
 const saveTicks = () => LS.set('checkoutTicks', packTicks(code, checkoutDone, Date.now()));
 const setTicks = keys => { checkoutDone.clear(); keys.forEach(k => checkoutDone.add(k)); saveTicks(); };
@@ -331,7 +332,7 @@ function checkoutRow(r) {
   return `<button type="button" class="kr${r.done ? ' off' : ''}" data-checkout="${esc(r.key)}" aria-pressed="${r.done}"><span class="nm">${esc(r.title)}${mid}</span><span class="no">${times}${esc(r.no || '–')}</span></button>`;
 }
 function renderCheckout() {
-  const s = checkoutSections(Object.values(state.items), depRows(), checkoutDone);
+  const s = checkoutSections(Object.values(state.items), depRows(), checkoutDone, new Set(tickStay.keys()));
   const sec = (head, rows) => rows.length ? `<div class="card ks"><h3>${head}</h3>${rows.map(checkoutRow).join('')}</div>` : '';
   // rows that are done slide down into their own block below everything else (tap again to bring one back)
   $('#checkout').innerHTML = sec(t('secItems'), s.items) + sec(t('secBakery'), s.bakery) + sec(t('secEmpties'), s.empties) + sec(t('secDone'), s.done)
@@ -507,7 +508,10 @@ document.addEventListener('click', e => {
   const kr = e.target.closest('[data-checkout]');
   if (kr) {
     const k = kr.dataset.checkout, refocus = focusedKey();
-    checkoutDone.has(k) ? checkoutDone.delete(k) : checkoutDone.add(k); saveTicks(); renderCheckout();
+    clearTimeout(tickStay.get(k)); tickStay.delete(k);
+    if (checkoutDone.has(k)) checkoutDone.delete(k); // un-ticking brings the row back at once
+    else { checkoutDone.add(k); tickStay.set(k, setTimeout(() => { tickStay.delete(k); renderCheckout(); }, GRACE_MS)); }
+    saveTicks(); renderCheckout();
     if (refocus) document.querySelector(refocus)?.focus({ preventScroll: true }); // the row moved: keyboard focus goes with it
     return;
   }

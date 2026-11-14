@@ -352,3 +352,15 @@ test('checkerEmoji: the emoji of a player key, empty when there is none', () => 
   assert.equal(checkerEmoji(null), '');
   assert.equal(checkerEmoji('<script>x</script> y'), '');
 });
+
+test('checkoutSections: a row ticked just now stays in its block until it stops lingering', () => {
+  const items = [{ id: 'a', title: 'Apfel', checked: true, vgNum: 2000 }, { id: 'b', title: 'Birne', checked: true, vgNum: 2001 }];
+  const ticks = new Set(['a']);
+  let s = checkoutSections(items, [], ticks, new Set(['a']));
+  assert.deepEqual(s.items.map(r => [r.key, r.done]), [['a', true], ['b', false]]);
+  assert.equal(s.done.length, 0);
+  s = checkoutSections(items, [], ticks, new Set());
+  assert.deepEqual(s.items.map(r => r.key), ['b']);
+  assert.deepEqual(s.done.map(r => r.key), ['a']);
+  assert.equal(checkoutSections(items, [], new Set(), new Set(['a'])).items.length, 2); // not ticked: nothing lingers
+});
