@@ -56,13 +56,13 @@ const splitKey = k => { const i = k.indexOf(' '); return { emoji: k.slice(0, i),
 // shows a success that did not happen nor throws away what was typed
 const readOnly = () => { if (!stale) return false; toast(t('connCached')); return true; };
 // Delete without asking; the toast offers to bring the item back with all its data (same id, number, state)
-function deleteItem(it) {
+function deleteItem(it, scanned = null) { // `scanned`: the title that went into the basket and replaces this item
   if (readOnly()) return;
   endInteraction();
   const prev = { ...it }, c = code;
   bg.remove(c, it.id);
   const name = shortName(it.title);
-  toast(t('toastDeleted', { item: name }), { label: t('undo'), aria: t('ariaUndo', { item: name }), run: () => { if (c === code) bg.restore(c, prev, myKey()); } });
+  toast(scanned ? t('toastStruck', { item: shortName(scanned), listed: name }) : t('toastDeleted', { item: name }), { label: t('undo'), aria: t('ariaUndo', { item: name }), run: () => { if (c === code) bg.restore(c, prev, myKey()); } });
 }
 
 /* ---------- Connection ---------- */
@@ -311,6 +311,7 @@ function render() {
 
 /* ---------- Checkout ---------- */
 const checkoutDone = new Set(); // rows ticked at the checkout (typed in at the till): local to this phone, kept per list for 24 h
+const tickStay = new Map(); // key -> timer: rows ticked just now stay in their block for GRACE_MS, shown as ticked
 const loadTicks = () => { checkoutDone.clear(); for (const k of sanitizeTicks(LS.get('checkoutTicks', null), code, Date.now())) checkoutDone.add(k); };
 const saveTicks = () => LS.set('checkoutTicks', packTicks(code, checkoutDone, Date.now()));
 const setTicks = keys => { checkoutDone.clear(); keys.forEach(k => checkoutDone.add(k)); saveTicks(); };
@@ -331,7 +332,7 @@ function checkoutRow(r) {
   return `<button type="button" class="kr${r.done ? ' off' : ''}" data-checkout="${esc(r.key)}" aria-pressed="${r.done}"><span class="nm">${esc(r.title)}${mid}</span><span class="no">${times}${esc(r.no || '–')}</span></button>`;
 }
 function renderCheckout() {
-  const s = checkoutSections(Object.values(state.items), depRows(), checkoutDone);
+  const s = checkoutSections(Object.values(state.items), depRows(), checkoutDone, new Set(tickStay.keys()));
   const sec = (head, rows) => rows.length ? `<div class="card ks"><h3>${head}</h3>${rows.map(checkoutRow).join('')}</div>` : '';
   // rows that are done slide down into their own block below everything else (tap again to bring one back)
   $('#checkout').innerHTML = sec(t('secItems'), s.items) + sec(t('secBakery'), s.bakery) + sec(t('secEmpties'), s.empties) + sec(t('secDone'), s.done)
@@ -507,7 +508,10 @@ document.addEventListener('click', e => {
   const kr = e.target.closest('[data-checkout]');
   if (kr) {
     const k = kr.dataset.checkout, refocus = focusedKey();
-    checkoutDone.has(k) ? checkoutDone.delete(k) : checkoutDone.add(k); saveTicks(); renderCheckout();
+    clearTimeout(tickStay.get(k)); tickStay.delete(k);
+    if (checkoutDone.has(k)) checkoutDone.delete(k); // un-ticking brings the row back at once
+    else { checkoutDone.add(k); tickStay.set(k, setTimeout(() => { tickStay.delete(k); renderCheckout(); }, GRACE_MS)); }
+    saveTicks(); renderCheckout();
     if (refocus) document.querySelector(refocus)?.focus({ preventScroll: true }); // the row moved: keyboard focus goes with it
     return;
   }
@@ -867,13 +871,11 @@ async function scanForRow(c, p, target) {
   } else { toast(t('scanUnknown')); return; }
   buzz();
 }
-// After a scan added a NEW item: an open item that was typed as the same name ("Vollkornbrot" -> product "Vollkornbrot") is removed
-// without asking (the Undo toast of deleteItem follows); one that the product only extends ("Apfel" -> "Apfel Gala") is offered for
-// removal. Returns the item to remove, or null (none, kept, closed dialog, scanner closed meanwhile). The oldest match wins.
+// After a scan added a NEW item: an open item with the same name ("Vollkornbrot" -> product "Vollkornbrot") or one that the product only
+// extends ("Apfel" -> "Apfel Gala") is offered for removal; an identical name is preferred over a related one, then the oldest wins.
+// Returns the item to remove, or null (none, kept, closed dialog, scanner closed meanwhile).
 async function askStrike(title) {
-  const same = findNameMatch(state.items, title, 'same');
-  if (same) return same;
-  const m = findNameMatch(state.items, title);
+  const m = findNameMatch(state.items, title, 'same') || findNameMatch(state.items, title);
   if (!m) return null;
   const session = scanSession;
   const yes = await ask(t('confirmStrike', { listed: m.title }), { yes: t('askStrike'), no: t('askKeep') });
@@ -923,7 +925,7 @@ async function handleCode(raw) {
     buzz();
     const gone = r?.added && strike ? await askStrike(strike) : null; // the scanner stays open under the question
     closeScanner();
-    if (gone) deleteItem(gone);
+    if (gone) deleteItem(gone, r.title);
   } finally { scanBusy = false; }
 }
 // The camera of the scanner dialog (scan.js); every code it reads goes to handleCode
