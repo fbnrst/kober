@@ -91,7 +91,7 @@ body.typing .tabs{display:none}
 .item.done .chk{background:var(--tone-bg) var(--tick) center/15px no-repeat}
 .item.done .chk.by{background-image:none;font-size:14px;line-height:21px;text-align:center;padding:0} /* another person checked it: their emoji in place of the tick, same box (the row keeps its height) */
 .item.done .t{text-decoration:line-through;color:var(--mute)}
-.t{flex:1;min-width:84px;overflow-wrap:anywhere}/* Suggestions float above the input bar instead of growing it: the input must not move while they appear */
+.t{flex:1;min-width:84px;overflow-wrap:anywhere;-webkit-hyphens:auto;hyphens:auto}/* long German words break at a syllable with a hyphen (the page language is set from the system language), the letter break is the fallback *//* Suggestions float above the input bar instead of growing it: the input must not move while they appear */
 #addSuggest{position:absolute;left:12px;right:12px;bottom:100%;margin:0 auto 6px;max-width:640px;display:flex;flex-direction:column;gap:6px;padding:6px;background:var(--bg);border:1px solid var(--line);border-radius:12px;box-shadow:0 -6px 18px var(--shadow-suggest);max-height:min(360px,calc(var(--app-h,100vh) - 150px));overflow:auto;z-index:8}
 #addSuggest .sug,#scanSuggest .sug{display:flex;gap:12px;align-items:baseline;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--fg);font:inherit}
 #addSuggest .sug b,#scanSuggest .sug b{min-width:48px;color:var(--green);font-variant-numeric:tabular-nums}
@@ -114,8 +114,9 @@ body.typing .tabs{display:none}
 .t small{display:inline;margin-left:6px;color:var(--mute);font-size:14px;white-space:nowrap}
 .item input.vg{width:56px;height:40px;padding:4px 6px;font-size:16px} /* below 16px iOS zooms into the page when a field gets focus */.item form{flex:none;display:flex;gap:10px;align-items:center}
 /* the quick number field has a fixed width: while the confirm button is hidden the field takes its space, so nothing else moves */
-.item form.quick{width:108px}.item form.quick input.vg{flex:1;min-width:0;width:auto}
-.item form.quick:not(.has) .rowbtn.ok{display:none}
+.item .quick{width:70px}.item .quick.closed{display:flex;gap:10px;justify-content:flex-end}.item form.quick.typing{width:100px}.item form.quick input.vg{flex:1;min-width:0;width:auto}
+.item form.quick:not(.has) .rowbtn[data-quicknum]{font-size:11px;font-weight:600;letter-spacing:-.2px}
+.rowbtn.ok{display:none}
 .item form.quick[aria-hidden]{visibility:hidden} /* a lingering row keeps the quick form's space */
 .item form.quick.has [data-scanrow]{display:none} /* a number is typed: the ✓ takes the place of the scan button, so the field keeps a usable width */
 .rowbtn{position:relative;flex:none;width:30px;height:30px;padding:0;border:0;border-radius:8px;background:var(--green2);color:var(--fg);display:grid;place-items:center;font-size:16px;line-height:1}

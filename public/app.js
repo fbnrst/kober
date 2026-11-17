@@ -45,6 +45,7 @@ let unsub = null, first = true, vg = null;
 // without data the Empties tab offers "Try again" (also retried on `online` and when that tab is opened).
 const vgLoader = createVgLoader({ load: () => loadVg(), onChange: (s, d) => { if (d) vg = d; render(); pruneCheckout(); } });
 let loadingStuck = false, emptyPending = false, watchdog = 0; // first snapshot of a shared list did not arrive in time / only an empty one so far
+let quickId = null; // open item whose quick number field is shown (otherwise just the # button)
 let editingId = null; // item whose VG number is being edited
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -200,7 +201,8 @@ function itemHtml(i, lingering = false) {
   const buttons = checkToo => `<button class="rowbtn ok" type="submit" aria-label="${t('ariaConfirmItem', { name: nm })}">✓</button><button class="rowbtn" type="button" data-scanrow="${id}" data-checktoo="${checkToo}" aria-label="${t('ariaScanItem', { name: nm })}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M16 7v10"/></svg></button>`;
   const vgIn = editing ? `<form data-vgedit="${id}"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" value="${esc(i.vgNum || '')}" placeholder="${t('noShort')}" aria-label="${t('ariaNumItem', { name: nm })}">${buttons(0)}</form>`
     : lingering && !i.vgNum ? `<form class="quick" aria-hidden="true"><input class="vg" tabindex="-1" placeholder="${t('noShort')}">${buttons(1).replace(/<button /g, '<button tabindex="-1" ')}</form>` // invisible placeholder of the quick form: same height as before the check
-    : i.vgNum || i.checked ? '' : `<form data-vg="${id}" class="quick"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${t('noShort')}" aria-label="${t('ariaNumItem', { name: nm })}">${buttons(1)}</form>`;
+    : i.vgNum || i.checked ? '' : quickId !== i.id ? `<div class="quick closed"><button class="rowbtn" type="button" data-quicknum="${id}" aria-label="${t('ariaAddNumItem', { name: nm })}">123</button>${buttons(1).replace(/^<button class="rowbtn ok".*?<\/button>/, '')}</div>`
+    : `<form data-vg="${id}" class="quick typing"><input class="vg" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${t('noShort')}" aria-label="${t('ariaNumItem', { name: nm })}">${buttons(1)}</form>`;
   const ord = reorder && !i.checked; // reorder mode: the handle takes the place of the check box, nothing else moves
   const lead = ord ? `<button type="button" class="ordh" data-ordh="${id}" aria-label="${t('ariaDragItem', { name: nm })}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg></button>`
     : who ? `<button class="chk by" data-chk="${id}" title="${esc(t('lingerBy', { name: i.checkedBy }))}" aria-label="${t('ariaBackItem', { name: nm })}, ${esc(t('lingerBy', { name: i.checkedBy }))}">${esc(who)}</button>`
@@ -518,6 +520,8 @@ document.addEventListener('click', e => {
   if (ss) { clearField('#eanIn'); handleCode(`VG ${ss.dataset.scansug}`); return; }
   const sr = e.target.closest('[data-scanrow]');
   if (sr) { scanTarget = { id: sr.dataset.scanrow, checkToo: sr.dataset.checktoo === '1' }; openScanner(); return; }
+  const qn = e.target.closest('[data-quicknum]');
+  if (qn) { quickId = qn.dataset.quicknum; render(); const input = document.querySelector(`[data-vg="${CSS.escape(quickId)}"] input`); if (input) input.focus(); return; }
   const en = e.target.closest('[data-editnum]');
   if (en) { editingId = en.dataset.editnum; render(); return; }
   const dadd = e.target.closest('[data-dep-add]'), dsub = e.target.closest('[data-dep-sub]');
@@ -593,7 +597,7 @@ document.addEventListener('submit', async e => {
   if (!(v > 0)) return;
   const p = vg && vg.lookup(v);
   if (!(await numberFits(p, v, state.items[f.dataset.vg]))) { keepTyping(`[data-vg="${CSS.escape(f.dataset.vg)}"] input`, String(v)); return; } // the field keeps the typed number
-  dismissKeyboard(); // the item moves into the basket: the rows may be rebuilt now
+  quickId = null; dismissKeyboard(); // the item moves into the basket: the rows may be rebuilt now
   bg.setNum(code, f.dataset.vg, myKey(), v, true, p ? { title: p.title } : {}); // entering the number puts it in the basket
   toast(p ? `✓ ${p.title}` : t(vg ? 'vgNotInDb' : 'vgSaved', { n: v }));
 });
@@ -602,12 +606,17 @@ document.addEventListener('focusout', e => {
   if (!e.target.closest('[data-vgedit]')) return;
   setTimeout(() => { if (editingId && !document.activeElement?.closest('[data-vgedit]') && $('#scanner').classList.contains('hide') && !asking()) { editingId = null; render(); } }, 350);
 });
+// Leaving the quick number field without a number turns it back into the # button
+document.addEventListener('focusout', e => {
+  if (!e.target.closest('[data-vg]')) return;
+  setTimeout(() => { if (quickId && !document.activeElement?.closest('[data-vg]') && $('#scanner').classList.contains('hide') && !asking()) { quickId = null; render(); } }, 350);
+});
 // The rows waited while a number field had focus (see render): rebuild them once focus has left the rows' fields
 document.addEventListener('focusout', e => {
   if (!rowsLater || !e.target.closest('#items, #doneItems')) return;
   setTimeout(() => { if (rowsLater && !rowFieldFocused()) render(); }, 0);
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && editingId) { editingId = null; dismissKeyboard(); render(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && quickId) { quickId = null; dismissKeyboard(); render(); } else if (e.key === 'Escape' && editingId) { editingId = null; dismissKeyboard(); render(); } });
 $('#addForm').onsubmit = async e => {
   e.preventDefault();
   const v = $('#addIn').value.trim(); if (!v) return;

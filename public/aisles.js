@@ -15,17 +15,18 @@ const WORDS = {
   dairy: 'ei,eier,sojadrink,haferdrink,mandeldrink,mandelmilch,hafermilch,sojamilch,reismilch,haselnussmilch',
   chilled: 'milch,sahne,schmand,joghurt,quark,skyr,butter,margarine,kaese,gouda,emmentaler,camembert,mozzarella,feta,parmesan,frischkaese,kefir,pudding,nachtisch,dessert,tofu,tempeh,seitan,wurst,aufschnitt,schinken,lachs,fisch,fleisch,hack,sojaschnetzel,burger,falafel,bratling,salami,speck,haehn,huhn,pute,rind,schwein,steak,brust',
   bakery: 'brot,broetchen,semmel,baguette,croissant,brezel,kuchen,toast,knaeckebrot,zwieback,torte,gebaeck,blaetterteig,hefeteig,laugen',
-  spreads: 'marmelade,honig,sirup,dicksaft,nutella,nussmus,erdnussmus,erdnussmuss,mandelmus,cashewmus,erdnussbutter,tahini,aufstrich,bionella,zwergenwiese,harissa',
+  spreads: 'marmelade,honig,sirup,dicksaft,nutella,nussmus,erdnussmus,erdnussmuss,mandelmus,cashewmus,erdnussbutter,tahin,erdnusscreme,mandelcreme,aufstrich,bionella,zwergenwiese,harissa',
   cereal: 'haferflocken,flocken,muesli,cornflakes,granola,porridge,cerealien',
   baking: 'mehl,zucker,backpulver,natron,hefe,vanille,gelatine,sahnesteif,puddingpulver,guss,raspel,staerke,suessstoff,dattelsuesse,paniermehl',
   pasta: 'nudel,spaghetti,penne,spiralen,reis,couscous,bulgur,hirse,linse,kichererbse,kichererbsen,bohnen,mais,quinoa,griess,polenta,gerste,dinkel,tortellini,gnocchi,lasagne,raviol,dosen,konserve,suppe,mus,oel,essig,balsamico,sojasauce,ketchup,mayonnaise,senf,bruehe,tomatenmark,kokosmilch,hummus,pesto,oliven,kartoffelpueree,sauerkraut,passierte,sosse,sauce,zwergensauce',
-  spices: 'salz,pfeffer,zimt,curry,kurkuma,muskat,gewuerz,pulver,lorbeer,nelke,wacholder,hefeflocken',
+  spices: 'salz,kuemmel,pfeffer,zimt,curry,kurkuma,muskat,gewuerz,pulver,lorbeer,nelke,wacholder,hefeflocken',
   coffee: 'tee,kaffee,kaffeebohnen,espresso,kakao',
   snacks: 'nuss,nuesse,mandel,cashew,erdnuss,sonnenblumenkerne,kuerbiskerne,leinsamen,chiasamen,sesam,pinienkern,pistazie,studentenfutter,rosinen,datteln,trockenfruechte,trockenobst,cranberr,schokolade,gummibaer,chips,salzstangen,riegel,popcorn,bonbon,lakritz,marzipan,nougat,cracker,reiswaffel,keks',
   drinks: 'wasser,sprudel,saft,schorle,limonade,cola,bier,wein,sekt,getraenk,pfand,limo,prosecco,spirituose,wodka,gin,whisky,radler,drink,eistee,mate',
   frozen: 'tk,tiefkuehl,pizza,pommes,kroketten,eis,eiswuerfel,beerenmix,blattspinat,eiscreme',
   household: 'zahnpasta,zahnbuerste,zahnseide,seife,duschgel,dusch,shampoo,deo,handcreme,toilettenpapier,klopapier,kuechenrolle,taschentuecher,spuelmittel,spuelbuerste,waschmittel,weichspueler,putzmittel,reiniger,muellbeutel,gefrierbeutel,backpapier,alufolie,frischhaltefolie,serviette,kerze,streichhoelzer,batterie,gluehbirne,windel,feuchttuecher,tampon,binde,spuelmaschine,schwamm,tragetasche,blumen,katzenfutter,hundefutter,futter,leckerli,rasier,sonnencreme,geschirrtuch,schere,filter',
 };
+// "TK" or "Tiefkühl..." anywhere in the title decides on its own (Erbsen TK is frozen, not produce)
 // Words that count only as a whole word (the short ones would hit inside other words) and cans that decide on their own
 const EXACT = new Set(['tk', 'ei', 'eier', 'eis', 'dose', 'glas', 'gin', 'deo', 'mais', 'mate']);
 const PHRASES = [[' h milch', 'dairy'], ['rote bete', 'produce'], ['rote beete', 'produce'], ['hafer barista', 'dairy'], ['ruehrei', 'dairy'], ['spiegelei', 'dairy']];
@@ -46,6 +47,7 @@ export function guessAisle(title) {
   if (phrase) return phrase[1];
   let best = null;
   for (const tok of name.split(/\s+/).filter(Boolean)) {
+    if (tok === 'tk' || tok.includes('tiefkuehl')) { if (!best || best[0] < 600) best = [600, 'frozen']; continue; }
     if (CANNED.has(tok)) { if (!best || best[0] < 500) best = [500, 'pasta']; continue; }
     for (const [k, aisle] of ENTRIES) {
       if (EXACT.has(k) ? tok !== k : !tok.includes(k)) continue;

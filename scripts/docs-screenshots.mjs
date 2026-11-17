@@ -51,7 +51,7 @@ async function scenes(browser, base, lang) {
 
   await open();
   // 1) list: names stay open, typed VG numbers go straight into the basket
-  for (const v of ['Haferdrink', 'Äpfel Elstar', 'Vollkornbrot', '4455', '7901']) { await add(v); await page.waitForTimeout(120); }
+  for (const v of ['Haferdrink', 'Schwarzkümmel', 'Äpfel Elstar', 'Vollkornbrot', '4455', '7901']) { await add(v); await page.waitForTimeout(120); }
   await page.evaluate(() => document.activeElement && document.activeElement.blur());
   await shot('list');
   // 2) number suggestions
