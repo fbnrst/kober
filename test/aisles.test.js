@@ -13,7 +13,8 @@ test('everyday items land in the aisle a shopper expects', () => {
     spreads: ['Bionella', 'Zwergenwiese', 'Erdnussmuß', 'Honig', 'Marmelade', 'Harissa', 'Tahin', 'Tahini', 'Mandelmuss', 'Erdnusscreme'],
     cereal: ['Müsli', 'Haferflocken', 'Cornflakes', 'Granola'],
     baking: ['Mehl', 'Zucker', 'Dattelsüße', 'Backpulver', 'Puddingpulver'],
-    pasta: ['Nudeln', 'Tomaten Dose', 'Gurken Glas', 'Gemüsebrühe', 'Apfelmus', 'Gemüsesuppe', 'Sonnenblumenöl', 'Balsamico', 'Olivenöl', 'Zwergensauce', 'Hot Sauce', 'Kichererbsen', 'Bohnen', 'Weiße Bohnen', 'Kidneybohnen', 'Mais'],
+    pasta: ['Nudeln', 'Reis', 'Couscous'],
+    canned: ['Tomaten Dose', 'Gurken Glas', 'Gemüsebrühe', 'Apfelmus', 'Gemüsesuppe', 'Sonnenblumenöl', 'Balsamico', 'Olivenöl', 'Zwergensauce', 'Hot Sauce', 'Kichererbsen', 'Bohnen', 'Weiße Bohnen', 'Kidneybohnen', 'Mais'],
     spices: ['Paprikapulver', 'Kurkuma', 'Salz', 'Zimt', 'Schwarzkümmel', 'Kümmel'],
     coffee: ['Kaffee', 'Kaffeebohnen', 'Kräutertee'],
     snacks: ['Paranusskerne', 'Datteln', 'Mandeln', 'Schokolade', 'Rosinen'],
@@ -26,7 +27,7 @@ test('everyday items land in the aisle a shopper expects', () => {
 test('compounds follow their last word, so a modifier does not decide', () => {
   assert.equal(guessAisle('Apfelsaft'), 'drinks');
   assert.equal(guessAisle('Apfel'), 'produce');
-  assert.equal(guessAisle('Sonnenblumenöl'), 'pasta'); // not "Blumen"
+  assert.equal(guessAisle('Sonnenblumenöl'), 'canned'); // not "Blumen"
   assert.equal(guessAisle('Reis'), 'pasta'); // "ei" inside a word means nothing
   assert.equal(guessAisle('Seife'), 'household');
 });

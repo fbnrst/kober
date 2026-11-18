@@ -3,7 +3,7 @@
 // An item that matches nothing is "other" (shown last): a wrong group costs more than none, so there is no guessing.
 
 // Default walking order of the groups; "other" always comes last
-export const AISLES = ['bakery', 'produce', 'dairy', 'spreads', 'cereal', 'baking', 'pasta', 'spices', 'coffee', 'snacks', 'drinks', 'household', 'chilled', 'frozen'];
+export const AISLES = ['bakery', 'produce', 'dairy', 'spreads', 'cereal', 'baking', 'pasta', 'canned', 'spices', 'coffee', 'snacks', 'drinks', 'household', 'chilled', 'frozen'];
 export const OTHER = 'other';
 // Chilled and frozen goods are fetched last (they stay cold), so they sit below even "other"
 export const ORDER = [...AISLES.filter(a => a !== 'chilled' && a !== 'frozen'), OTHER, 'chilled', 'frozen'];
@@ -18,7 +18,8 @@ const WORDS = {
   spreads: 'marmelade,honig,sirup,dicksaft,nutella,nussmus,erdnussmus,erdnussmuss,mandelmus,cashewmus,erdnussbutter,tahin,erdnusscreme,mandelcreme,aufstrich,bionella,zwergenwiese,harissa',
   cereal: 'haferflocken,flocken,muesli,cornflakes,granola,porridge,cerealien',
   baking: 'mehl,zucker,backpulver,natron,hefe,vanille,gelatine,sahnesteif,puddingpulver,guss,raspel,staerke,suessstoff,dattelsuesse,paniermehl',
-  pasta: 'nudel,spaghetti,penne,spiralen,reis,couscous,bulgur,hirse,linse,kichererbse,kichererbsen,bohnen,mais,quinoa,griess,polenta,gerste,dinkel,tortellini,gnocchi,lasagne,raviol,dosen,konserve,suppe,mus,oel,essig,balsamico,sojasauce,ketchup,mayonnaise,senf,bruehe,tomatenmark,kokosmilch,hummus,pesto,oliven,kartoffelpueree,sauerkraut,passierte,sosse,sauce,zwergensauce',
+  pasta: 'nudel,spaghetti,penne,spiralen,reis,couscous,bulgur,hirse,linse,quinoa,griess,polenta,gerste,dinkel,tortellini,gnocchi,lasagne,raviol',
+  canned: 'kichererbse,kichererbsen,bohnen,mais,dosen,konserve,suppe,mus,oel,essig,balsamico,sojasauce,ketchup,mayonnaise,senf,bruehe,tomatenmark,kokosmilch,hummus,pesto,oliven,kartoffelpueree,sauerkraut,passierte,sosse,sauce,zwergensauce',
   spices: 'salz,kuemmel,pfeffer,zimt,curry,kurkuma,muskat,gewuerz,pulver,lorbeer,nelke,wacholder,hefeflocken',
   coffee: 'tee,kaffee,kaffeebohnen,espresso,kakao',
   snacks: 'nuss,nuesse,mandel,cashew,erdnuss,sonnenblumenkerne,kuerbiskerne,leinsamen,chiasamen,sesam,pinienkern,pistazie,studentenfutter,rosinen,datteln,trockenfruechte,trockenobst,cranberr,schokolade,gummibaer,chips,salzstangen,riegel,popcorn,bonbon,lakritz,marzipan,nougat,cracker,reiswaffel,keks',
@@ -48,7 +49,7 @@ export function guessAisle(title) {
   let best = null;
   for (const tok of name.split(/\s+/).filter(Boolean)) {
     if (tok === 'tk' || tok.includes('tiefkuehl')) { if (!best || best[0] < 600) best = [600, 'frozen']; continue; }
-    if (CANNED.has(tok)) { if (!best || best[0] < 500) best = [500, 'pasta']; continue; }
+    if (CANNED.has(tok)) { if (!best || best[0] < 500) best = [500, 'canned']; continue; }
     for (const [k, aisle] of ENTRIES) {
       if (EXACT.has(k) ? tok !== k : !tok.includes(k)) continue;
       const score = (tok.endsWith(k) ? 100 : 0) + k.length;
